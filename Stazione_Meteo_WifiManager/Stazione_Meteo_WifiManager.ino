@@ -20,14 +20,12 @@
 #include <ThingSpeak.h>
 #endif
 
-#include <BH1750FVI.h>        //https://github.com/enjoyneering/BH1750FVI
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include "CStation.h"
 
-BH1750FVI myBH1750(BH1750_DEFAULT_I2CADDR, BH1750_CONTINUOUS_HIGH_RES_MODE_2, BH1750_SENSITIVITY_DEFAULT, BH1750_ACCURACY_DEFAULT);
 CStation myStation;
-Adafruit_BME280 myBME280; // I2C
+Adafruit_BME280 bme; // I2C
 WiFiClient client;
 
 // preinit() is called before system startup
@@ -43,8 +41,6 @@ void preinit() {
 
 float temperature, humidity, pressure, batteryVoltage;
 int batteryLevel, adcValue;
-unsigned int lux;
-bool useLuxSensor;
 
 // Setup --------------------------------------------------------------------------------------------------------
 void setup() {
@@ -88,7 +84,7 @@ void initStation(void) {
   digitalWrite(LED_BUILTIN, HIGH);
 
   DEBUGLN(F("Initialize BME280..."));
-  while (!myBME280.begin(0x76)) {
+  while (!bme.begin(0x76)) {
     DEBUGLN(F("Could not find a valid BME280 sensor, check wiring!"));
     for (int x = 0; x < 10; x++) {
       digitalWrite(LED_BUILTIN, LOW);
@@ -102,19 +98,6 @@ void initStation(void) {
     delay(5000);
   }
   DEBUGLN(F("BME280 sensor inizialized"));
-
-  DEBUGLN(F("Initialize BH1750FVI..."));
-  if (myBH1750.begin(D2, D1) == true)                //SDA - D2, SCL - D1
-  {
-    myBH1750.setResolution(BH1750_CONTINUOUS_HIGH_RES_MODE);
-    myBH1750.setSensitivity(1.61);
-    useLuxSensor = true;
-    DEBUGLN(F("ROHM BH1750FVI inizialized"));
-  }
-  else {
-    DEBUGLN(F("ROHM BH1750FVI is not present")); //(F()) saves string to flash & keeps dynamic memory free
-    useLuxSensor = false;
-  }
 }
 
 
@@ -125,14 +108,12 @@ void readSensorData(void) {
   pressure    = NAN;
   humidity    = NAN;
 
-  temperature    = myBME280.readTemperature();
-  pressure       = myBME280.readPressure() / 100.0F;
-  humidity       = myBME280.readHumidity();
+  temperature    = bme.readTemperature();
+  pressure       = bme.readPressure() / 100.0F;
+  humidity       = bme.readHumidity();
   batteryVoltage = myStation.getBatteryVoltage();
   adcValue       = analogRead(A0);
   batteryLevel   = constrain(map(batteryVoltage, 0, 4200, 0, 100), 0, 100);
-  if (useLuxSensor)
-    lux = myBH1750.readLightLevel();
 
   DEBUGLN(F("Data readed"));
   DEBUGLN("temperature:    " + String(temperature) + " °C");
@@ -141,8 +122,6 @@ void readSensorData(void) {
   DEBUGLN("analog Read:    " + String(adcValue));
   DEBUGLN("batteryVoltage: " + String(batteryVoltage / 1000) + " V");
   DEBUGLN("batteryLevel :  " + String(batteryLevel) + "%");
-  if (useLuxSensor)
-    DEBUGLN("lux :  " + String(lux) + "lux");
   DEBUGSPC();
 }
 
@@ -174,12 +153,10 @@ void dataToBlynk(void) {
     DEBUGLN(F("Send data to Blynk:"));
     Blynk.run();
     Blynk.virtualWrite(V0, temperature);
-    Blynk.virtualWrite(V1, pressure);
     Blynk.virtualWrite(V2, humidity);
+    Blynk.virtualWrite(V1, pressure);
     Blynk.virtualWrite(V3, adcValue);
     Blynk.virtualWrite(V4, batteryVoltage / 1000);
-    if (useLuxSensor)
-      Blynk.virtualWrite(V5, lux);
     DEBUGLN(F("Blynk data send."));
     DEBUGSPC();
   }
@@ -196,8 +173,6 @@ void dataToThongSpeak() {
   ThingSpeak.setField(3, String(pressure));
   ThingSpeak.setField(4, String(batteryVoltage / 1000));
   ThingSpeak.setField(5, String(adcValue));
-  if (useLuxSensor)
-    ThingSpeak.setField(6, String(lux));
   // write to the ThingSpeak channel
   char myapikey[40];
   strcpy(myapikey, myStation.getThingApiKey().c_str());
