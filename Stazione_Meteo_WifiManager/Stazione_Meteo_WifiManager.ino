@@ -75,7 +75,7 @@ void initStation(void) {
   int mVolt;
 
   mVolt = myStation.getBatteryVoltage();
-  if (mVolt < 2400) {
+  if (mVolt < 3000) {
     DEBUGLN("Battery LOW: " + String(mVolt) + " mV");
     goSleep();
   }
