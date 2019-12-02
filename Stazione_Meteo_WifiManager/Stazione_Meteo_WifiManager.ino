@@ -1,3 +1,7 @@
+const int FW_VERSION = 0010;
+const char* fwUrlBase = "https://github.com/arduinousergroupcagliari/augc_meteo_esp8266/releases/download/";
+const char* fwNameBase = "0.0.1/meteo_station";
+
 /* Comment this out to disable prints and save space */
 #define DELAY 5 // minutes
 #define USE_DEBUG
@@ -23,6 +27,8 @@
 #include <BH1750FVI.h>        //https://github.com/enjoyneering/BH1750FVI
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
+#include <ESP8266HTTPClient.h>
+#include <ESP8266httpUpdate.h>
 #include "CStation.h"
 
 BH1750FVI myBH1750(BH1750_DEFAULT_I2CADDR, BH1750_CONTINUOUS_HIGH_RES_MODE_2, BH1750_SENSITIVITY_DEFAULT, BH1750_ACCURACY_DEFAULT);
@@ -232,4 +238,56 @@ void DEBUGSPC(void) {
 #ifdef USE_DEBUG
   Serial.println(F(""));
 #endif
+}
+
+void checkForUpdates() {
+  String fwVersionName = fwNameBase;
+  String fwURL = String( fwUrlBase );
+  fwURL.concat( fwVersionName );
+  String fwVersionURL = fwURL;
+  fwVersionURL.concat( ".version" );
+
+  Serial.println( "Checking for firmware updates." );
+  Serial.print( "Firmware version URL: " );
+  Serial.println( fwVersionURL );
+
+  HTTPClient httpClient;
+  httpClient.begin( fwVersionURL );
+  int httpCode = httpClient.GET();
+  if( httpCode == 200 ) {
+    String newFWVersion = httpClient.getString();
+
+    Serial.print( "Current firmware version: " );
+    Serial.println( FW_VERSION );
+    Serial.print( "Available firmware version: " );
+    Serial.println( newFWVersion );
+
+    int newVersion = newFWVersion.toInt();
+
+    if( newVersion > FW_VERSION ) {
+      Serial.println( "Preparing to update" );
+
+      String fwImageURL = fwURL;
+      fwImageURL.concat( ".bin" );
+      t_httpUpdate_return ret = ESPhttpUpdate.update( fwImageURL );
+
+      switch(ret) {
+        case HTTP_UPDATE_FAILED:
+          Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+          break;
+
+        case HTTP_UPDATE_NO_UPDATES:
+          Serial.println("HTTP_UPDATE_NO_UPDATES");
+          break;
+      }
+    }
+    else {
+      Serial.println( "Already on latest version" );
+    }
+  }
+  else {
+    Serial.print( "Firmware version check failed, got HTTP response code " );
+    Serial.println( httpCode );
+  }
+  httpClient.end();
 }
