@@ -1,12 +1,10 @@
-const int FW_VERSION = 0010;
-const char* fwUrlBase = "https://github.com/arduinousergroupcagliari/augc_meteo_esp8266/releases/download/";
-const char* fwNameBase = "0.0.1/meteo_station";
-
 /* Comment this out to disable prints and save space */
 #define DELAY 5 // minutes
 #define USE_DEBUG
 #define USE_BLYNK
 #define USE_THINGSPEAK
+
+#include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
 
 #ifdef USE_BLYNK
 #ifndef USE_DEBUG
@@ -24,39 +22,48 @@ const char* fwNameBase = "0.0.1/meteo_station";
 #include <ThingSpeak.h>
 #endif
 
+#include "CStation.h"
 #include <BH1750FVI.h>        //https://github.com/enjoyneering/BH1750FVI
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
-#include <ESP8266HTTPClient.h>
 #include <ESP8266httpUpdate.h>
-#include "CStation.h"
+#include <time.h>
 
-BH1750FVI myBH1750(BH1750_DEFAULT_I2CADDR, BH1750_CONTINUOUS_HIGH_RES_MODE_2, BH1750_SENSITIVITY_DEFAULT, BH1750_ACCURACY_DEFAULT);
 CStation myStation;
+BH1750FVI myBH1750(BH1750_DEFAULT_I2CADDR, BH1750_CONTINUOUS_HIGH_RES_MODE_2, BH1750_SENSITIVITY_DEFAULT, BH1750_ACCURACY_DEFAULT);
 Adafruit_BME280 myBME280; // I2C
 WiFiClient client;
 
-// preinit() is called before system startup
-// from nonos-sdk's user entry point user_init()
-
-void preinit() {
-  // Global WiFi constructors are not called yet
-  // (global class instances like WiFi, Serial... are not yet initialized)..
-  // No global object methods or C++ exceptions can be called in here!
-  //The below is a static class method, which is similar to a function, so it's ok.
-  ESP8266WiFiClass::preinitWiFiOff();
-}
+const int FW_VERSION = 1000;
+const char* fwServerBase = "raw.githubusercontent.com";
+const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/whit-update/bin/";
+const char* fwNameBase = "latest.version";
+const uint8_t fingerprint[20] = { 0xCC, 0xAA, 0x48, 0x48, 0x66, 0x46, 0x0E, 0x91, 0x53, 0x2C, 0x9C, 0x7C, 0x23, 0x2A, 0xB1, 0x74, 0x4D, 0x29, 0x9D, 0x33 };
 
 float temperature, humidity, pressure, batteryVoltage;
 int batteryLevel, adcValue;
 unsigned int lux;
 bool useLuxSensor;
 
+void preinit() {
+  ESP8266WiFiClass::preinitWiFiOff();
+}
+
+
+
 // Setup --------------------------------------------------------------------------------------------------------
 void setup() {
   Serial.begin(115200);
   DEBUGSPC();
   DEBUGLN(F("METEO STATION!!"));
+
+  // debug
+  DEBUGLN(F("Waking WiFi up!!"));
+  WiFi.forceSleepWake();
+  if (!myStation.wifiConnect(true)) goSleep();
+  checkupdate();
+  goSleep();
+  // fine debug
 
   initStation();
   readSensorData();
@@ -73,7 +80,7 @@ void setup() {
   dataToThongSpeak();
 #endif
 
-  // checkForUpdates();
+  checkupdate();
   goSleep();
 }
 
@@ -228,6 +235,12 @@ void DEBUG(String toPrint) {
 #endif
 }
 
+void DEBUGP(String toPrint) {
+#ifdef USE_DEBUG
+  Serial.print(toPrint);
+#endif
+}
+
 void DEBUGLN(String toPrint) {
 #ifdef USE_DEBUG
   Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println(toPrint);
@@ -240,54 +253,77 @@ void DEBUGSPC(void) {
 #endif
 }
 
-void checkForUpdates() {
-  String fwVersionName = fwNameBase;
-  String fwURL = String( fwUrlBase );
-  fwURL.concat( fwVersionName );
-  String fwVersionURL = fwURL;
-  fwVersionURL.concat( ".version" );
 
-  Serial.println( "Checking for firmware updates." );
-  Serial.print( "Firmware version URL: " );
-  Serial.println( fwVersionURL );
+void checkupdate() {
+  checkNtpClock();
+  BearSSL::WiFiClientSecure secureclient;
+  secureclient.setFingerprint(fingerprint);
+  bool mfln = secureclient.probeMaxFragmentLength(fwServerBase, 443, 1024);  // server must be the same as in ESPhttpUpdate.update()
+  DEBUGLN("MFLN supported: " + String(mfln ? "yes" : "no"));
+  if (mfln) {
+    secureclient.setBufferSizes(1024, 1024);
+  }
+
+  ESPhttpUpdate.setLedPin(LED_BUILTIN, LOW);
+
+  String newFWVersion = "0000";
+  String fwURL = "https://" + String(fwServerBase) + String(fwDirBase);
+  String fwVersionURL = fwURL + fwNameBase;
+
+  DEBUGLN( "Checking for firmware updates." );
+  DEBUGLN( "Firmware version URL: " + String( fwVersionURL ));
 
   HTTPClient httpClient;
-  httpClient.begin( fwVersionURL );
+  httpClient.begin(secureclient, fwVersionURL );
   int httpCode = httpClient.GET();
-  if( httpCode == 200 ) {
-    String newFWVersion = httpClient.getString();
-
-    Serial.print( "Current firmware version: " );
-    Serial.println( FW_VERSION );
-    Serial.print( "Available firmware version: " );
-    Serial.println( newFWVersion );
-
-    int newVersion = newFWVersion.toInt();
-
-    if( newVersion > FW_VERSION ) {
-      Serial.println( "Preparing to update" );
-
-      String fwImageURL = fwURL;
-      fwImageURL.concat( ".bin" );
-      t_httpUpdate_return ret = ESPhttpUpdate.update( fwImageURL );
-
-      switch(ret) {
-        case HTTP_UPDATE_FAILED:
-          Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
-          break;
-
-        case HTTP_UPDATE_NO_UPDATES:
-          Serial.println("HTTP_UPDATE_NO_UPDATES");
-          break;
-      }
-    }
-    else {
-      Serial.println( "Already on latest version" );
-    }
-  }
+  if ( httpCode == 200 )
+    newFWVersion = httpClient.getString();
   else {
-    Serial.print( "Firmware version check failed, got HTTP response code " );
-    Serial.println( httpCode );
+    DEBUGLN( "Firmware version check failed, got HTTP response code " + String( httpCode ));
   }
-  httpClient.end();
+  DEBUGLN( "Current firmware version: " + String( FW_VERSION ));
+  DEBUGLN( "Available firmware version: " + String( newFWVersion ));
+
+  int newVersion = newFWVersion.toInt();
+
+  if ( newVersion > FW_VERSION ) {
+    DEBUGLN( "Preparing to update" );
+    String fwImageURL = fwURL + String(newVersion) + ".bin";
+    DEBUGLN( "Firmware image URL: " + String( fwImageURL ));
+    t_httpUpdate_return ret = ESPhttpUpdate.update(secureclient, fwImageURL);
+
+    switch (ret) {
+      case HTTP_UPDATE_FAILED:
+        DEBUGLN("HTTP_UPDATE_FAILED Error " + String(ESPhttpUpdate.getLastError()) + ": " + ESPhttpUpdate.getLastErrorString().c_str());
+        break;
+
+      case HTTP_UPDATE_NO_UPDATES:
+        DEBUGLN("HTTP_UPDATE_NO_UPDATES");
+        break;
+
+      case HTTP_UPDATE_OK:
+        DEBUGLN("HTTP_UPDATE_OK");
+        break;
+    }
+  }
+  else
+    DEBUGLN( "Already on latest version" );
+}
+
+void checkNtpClock() {
+  configTime(0, 0, "pool.ntp.org", "time.nist.gov");  // UTC
+
+  DEBUG(F("Waiting for NTP time sync: "));
+  time_t now = time(nullptr);
+  while (now < 8 * 3600 * 2) {
+    yield();
+    delay(500);
+    DEBUGP(F("."));
+    now = time(nullptr);
+  }
+
+  DEBUGSPC();
+  struct tm timeinfo;
+  gmtime_r(&now, &timeinfo);
+  DEBUGLN("Current time: " + String(asctime(&timeinfo)));
 }
