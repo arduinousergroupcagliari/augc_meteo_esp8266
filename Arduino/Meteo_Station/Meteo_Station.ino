@@ -34,7 +34,7 @@ BH1750FVI myBH1750(BH1750_DEFAULT_I2CADDR, BH1750_CONTINUOUS_HIGH_RES_MODE_2, BH
 Adafruit_BME280 myBME280; // I2C
 WiFiClient client;
 
-const int FW_VERSION = 1000;
+const int FW_VERSION = 999;
 const char* fwServerBase = "raw.githubusercontent.com";
 const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/whit-update/bin/";
 const char* fwNameBase = "latest.version";
@@ -255,6 +255,7 @@ void DEBUGSPC(void) {
 
 
 void checkupdate() {
+  DEBUGLN( "Checking for firmware updates." );
   checkNtpClock();
   BearSSL::WiFiClientSecure secureclient;
   secureclient.setFingerprint(fingerprint);
@@ -269,8 +270,6 @@ void checkupdate() {
   String newFWVersion = "0000";
   String fwURL = "https://" + String(fwServerBase) + String(fwDirBase);
   String fwVersionURL = fwURL + fwNameBase;
-
-  DEBUGLN( "Checking for firmware updates." );
   DEBUGLN( "Firmware version URL: " + String( fwVersionURL ));
 
   HTTPClient httpClient;
