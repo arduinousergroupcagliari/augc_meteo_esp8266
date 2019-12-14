@@ -59,13 +59,13 @@ void setup() {
   DEBUGLN("Firmware version: " + String(FW_VERSION));
   DEBUGSPC();
   
-  // debug
-  DEBUGLN(F("Waking WiFi up!!"));
-  WiFi.forceSleepWake();
-  if (!myStation.wifiConnect(true)) goSleep();
-  checkupdate();
-  goSleep();
-  // fine debug
+//  // debug
+//  DEBUGLN(F("Waking WiFi up!!"));
+//  WiFi.forceSleepWake();
+//  if (!myStation.wifiConnect(true)) goSleep();
+//  checkupdate();
+//  goSleep();
+//  // fine debug
 
   initStation();
   readSensorData();
