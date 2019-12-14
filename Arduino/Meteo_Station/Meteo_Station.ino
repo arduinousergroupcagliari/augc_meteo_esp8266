@@ -34,7 +34,7 @@ BH1750FVI myBH1750(BH1750_DEFAULT_I2CADDR, BH1750_CONTINUOUS_HIGH_RES_MODE_2, BH
 Adafruit_BME280 myBME280; // I2C
 WiFiClient client;
 
-const int FW_VERSION = 1000;
+const int FW_VERSION = 1001;
 const char* fwServerBase = "raw.githubusercontent.com";
 const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/whit-update/bin/";
 const char* fwNameBase = "latest.version";
@@ -203,7 +203,7 @@ void dataToBlynk(void) {
 void dataToThongSpeak() {
   DEBUGLN(F("Inizialize ThingSpeak..."));
   ThingSpeak.begin(client);  // Initialize ThingSpeak
-  ThingSpeak.setStatus("Running...");
+  ThingSpeak.setStatus("Running...  v." + String(FW_VERSION));
   DEBUGSPC();
   DEBUGLN(F("Send data to ThingSpeak:"));
   ThingSpeak.setField(1, String(temperature));
