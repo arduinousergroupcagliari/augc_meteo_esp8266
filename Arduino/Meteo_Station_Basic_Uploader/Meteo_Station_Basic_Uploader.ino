@@ -52,9 +52,12 @@ String   m_wifiSSID, m_wifiPSW, m_hotspotSSID, m_hotspotPSW, m_blynkServer, m_bl
 
 // Setup --------------------------------------------------------------------------------------------------------
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(74880);
   DEBUGSPC();
   DEBUGLN(F("METEO STATION!!"));
+  DEBUGLN("Firmware version: " + String(FW_VERSION));
+  DEBUGSPC();
+  
   initFS(false);
   if (!readNetworkConfigFile()) setNetworkConfigDefaults();
   wifiConnect(true);
