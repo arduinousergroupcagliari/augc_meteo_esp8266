@@ -78,22 +78,70 @@ bool CStation::wifiConnect(bool autoStartHotspot)
 #endif
   WiFi.begin(m_wifiSSID, m_wifiPSW);  // Connect to the network
 #ifdef USE_DEBUG
-  Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Connecting to %s ", m_wifiSSID.c_str());
+    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Quick connecting to %s ", m_wifiSSID.c_str());
 #endif
-  int i = 0;
-  while ((WiFi.status() != WL_CONNECTED) && (i <= WIFI_TIMEOUT)) {
+  }
+  else {
+    // The RTC data was not valid, so make a regular connection
+    WiFi.begin(m_wifiSSID, m_wifiPSW);  // Connect to the network
+#ifdef USE_DEBUG
+    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Normal connecting to %s ", m_wifiSSID.c_str());
+#endif
+  }
+
+  int retries = 0;
+  while ((WiFi.status() != WL_CONNECTED) && (retries <= WIFI_TIMEOUT)) {
     delay(1000);
 #ifdef USE_DEBUG
     Serial.print('.');
 #endif
-    i++;
+    retries++;
   }
+
 #ifdef USE_DEBUG
   Serial.println(F(""));
 #endif
 
-  if (i <= WIFI_TIMEOUT) {
+  if ( retries <= WIFI_TIMEOUT && rtcValid ) {
+#ifdef USE_DEBUG
+    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Unable to use quick connection.");
+#endif
+    // Quick connect is not working, reset WiFi and try regular connection
+    WiFi.persistent(false);
+    WiFi.disconnect();
+    WiFi.persistent(true);
+    delay( 10 );
+    WiFi.forceSleepBegin();
+    delay( 10 );
+    WiFi.forceSleepWake();
+    delay( 10 );
+    WiFi.begin(m_wifiSSID, m_wifiPSW);  // Connect to the network
+#ifdef USE_DEBUG
+    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Normal connecting to %s ", m_wifiSSID.c_str());
+#endif
+    retries = 0;
+    while ((WiFi.status() != WL_CONNECTED) && (retries <= WIFI_TIMEOUT)) {
+      delay(1000);
+#ifdef USE_DEBUG
+      Serial.print('.');
+#endif
+      retries++;
+    }
+  }
+
+#ifdef USE_DEBUG
+  Serial.println(F(""));
+#endif
+
+  if (retries <= WIFI_TIMEOUT) {
     // connection established
+
+    // Write current connection info back to RTC
+    rtcData.m_channel = WiFi.channel();
+    memcpy( rtcData.m_bssid, WiFi.BSSID(), 6 ); // Copy 6 bytes of BSSID (AP's MAC address)
+    rtcData.m_crc32 = calculateCRC32( ((uint8_t*)&rtcData) + 4, sizeof( rtcData ) - 4 );
+    ESP.rtcUserMemoryWrite( 0, (uint32_t*)&rtcData, sizeof( rtcData ) );
+
 #ifdef USE_DEBUG
     Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Connection established!");
     Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.print("IP address: "); Serial.println(WiFi.localIP());
@@ -177,7 +225,7 @@ bool CStation::initFS(bool formatFS)
   // try to initialize the SPI file system
   if (!SPIFFS.begin()) {
 #ifdef USE_DEBUG
-    Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.println("\nSPIFFS initialization failed.");
+    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("\nSPIFFS initialization failed.");
 #endif
     return false;
   }
@@ -186,14 +234,14 @@ bool CStation::initFS(bool formatFS)
     // no config file present -> format the SPI file system
     if (!SPIFFS.format()) {
 #ifdef USE_DEBUG
-      Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.println("SPIFFS Format error.");
+      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("SPIFFS Format error.");
 #endif
       return (false);
     }
     // create the config file
     if (!writeNetworkConfigFile(true)) {
 #ifdef USE_DEBUG
-      Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
+      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
 #endif
       return (false);
     }
@@ -207,7 +255,7 @@ bool CStation::writeNetworkConfigFile(bool useDefault)
   File configFile = SPIFFS.open(NETWORK_CONFIG_FILE, "w");
   if (!configFile) {
 #ifdef USE_DEBUG
-    Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
+    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
 #endif
     return (false);
   }
@@ -244,7 +292,7 @@ bool CStation::readNetworkConfigFile(void)
   File configFile = SPIFFS.open(NETWORK_CONFIG_FILE, "r");
   if (!configFile) {
 #ifdef USE_DEBUG
-    Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.printf("Unable to open %s file.\n", NETWORK_CONFIG_FILE);
+    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Unable to open %s file.\n", NETWORK_CONFIG_FILE);
 #endif
     return (false);
   }
@@ -256,7 +304,7 @@ bool CStation::readNetworkConfigFile(void)
       data.replace(VERSION_TAG, "");
       if (data != NETWORK_CFG_FILE_VERSION) {
 #ifdef USE_DEBUG
-        Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.println("Wrong firmware version, loading defaults.");
+        Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Wrong firmware version, loading defaults.");
 #endif
         // different firmware version -> generate a new default one
         configFile.close();
@@ -347,11 +395,11 @@ void CStation::startHotspot(void)
 
     if (!writeNetworkConfigFile()) {
 #ifdef USE_DEBUG
-      Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.println("Unable to writing config file");
+      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Unable to writing config file");
 #endif
     } else {
 #ifdef USE_DEBUG
-      Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.println("Config file written.");
+      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Config file written.");
 #endif
     }
   }
@@ -368,4 +416,24 @@ void CStation::setNetworkConfigDefaults(void)
   m_blynkToken  = DEFAULT_BLYNK_TOKEN;
   m_thingChannel = DEFAULT_THING_CHANNEL;
   m_thingApiKey = DEFAULT_THING_APIKEY;
+}
+
+uint32_t CStation::calculateCRC32( const uint8_t *data, size_t length ) {
+  uint32_t crc = 0xffffffff;
+  while ( length-- ) {
+    uint8_t c = *data++;
+    for ( uint32_t i = 0x80; i > 0; i >>= 1 ) {
+      bool bit = crc & 0x80000000;
+      if ( c & i ) {
+        bit = !bit;
+      }
+
+      crc <<= 1;
+      if ( bit ) {
+        crc ^= 0x04c11db7;
+      }
+    }
+  }
+
+  return crc;
 }
