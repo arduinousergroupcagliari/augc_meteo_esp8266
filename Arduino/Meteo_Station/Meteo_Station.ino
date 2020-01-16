@@ -35,6 +35,8 @@ Adafruit_BME280 myBME280; // I2C
 WiFiClient client;
 
 const int FW_VERSION = 1001;
+const int FW_VERSION = 1010;
+bool DEV_VERSION = true;
 const char* fwServerBase = "raw.githubusercontent.com";
 const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/whit-update/bin/";
 const char* fwNameBase = "latest.version";
@@ -56,7 +58,8 @@ void setup() {
   Serial.begin(74880);
   DEBUGSPC();
   DEBUGLN(F("METEO STATION!!"));
-  DEBUGLN("Firmware version: " + String(FW_VERSION));
+  DEBUGLN(DEV_VERSION ? "Development version" : "Master version");
+  DEBUGLN("Firmware number: " + String(FW_VERSION));
   DEBUGSPC();
   
 //  // debug
@@ -203,7 +206,7 @@ void dataToBlynk(void) {
 void dataToThongSpeak() {
   DEBUGLN(F("Inizialize ThingSpeak..."));
   ThingSpeak.begin(client);  // Initialize ThingSpeak
-  ThingSpeak.setStatus("Running...  v." + String(FW_VERSION));
+  ThingSpeak.setStatus((DEV_VERSION ? "Running... Dev_" : "Running... Master_") + String(FW_VERSION));
   DEBUGSPC();
   DEBUGLN(F("Send data to ThingSpeak:"));
   ThingSpeak.setField(1, String(temperature));
