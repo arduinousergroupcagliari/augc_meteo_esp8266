@@ -38,7 +38,7 @@ WiFiClient client;
 bool DEV_VERSION = true;
 const int FW_VERSION = 1010;
 const char* fwServerBase = "raw.githubusercontent.com";
-const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/Low-power-connection/bin/";
+const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/low-power-connection/bin/";
 const char* fwNameBase = "latest.version";
 const uint8_t fingerprint[20] = { 0xCC, 0xAA, 0x48, 0x48, 0x66, 0x46, 0x0E, 0x91, 0x53, 0x2C, 0x9C, 0x7C, 0x23, 0x2A, 0xB1, 0x74, 0x4D, 0x29, 0x9D, 0x33 };
 
