@@ -17,7 +17,7 @@ ADC_MODE(ADC_TOUT) // NodeMCU ADC initialization: external pin reading values en
 #define DEFAULT_PSWD         ""
 #define DEFAULT_HOTSPOT_SSID "AUGCMyStation"
 #define DEFAULT_HOTSPOT_PSWD ""
-#define DEFAULT_BLYNK_SERVER "shurillu.no-ip.org"
+#define DEFAULT_BLYNK_SERVER "blynk.augc.it"
 #define DEFAULT_BLYNK_PORT   "8080"
 #define DEFAULT_BLYNK_TOKEN  ""
 #define DEFAULT_THING_CHANNEL ""

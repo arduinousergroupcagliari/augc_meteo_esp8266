@@ -34,7 +34,7 @@ BH1750FVI myBH1750(BH1750_DEFAULT_I2CADDR, BH1750_CONTINUOUS_HIGH_RES_MODE_2, BH
 Adafruit_BME280 myBME280; // I2C
 WiFiClient client;
 
-const int FW_VERSION = 1002;
+const int FW_VERSION = 1010;
 bool DEV_VERSION = true;
 const char* fwServerBase = "raw.githubusercontent.com";
 const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/whit-update/bin/";
