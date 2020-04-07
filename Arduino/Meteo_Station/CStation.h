@@ -9,7 +9,7 @@
 // #include <Arduino.h>
 
 #//define FIRMWARE_VERSION    "1.0.0" // firmware version
-#define NETWORK_CFG_FILE_VERSION "2.0.0" // network config file version
+#define NETWORK_CFG_FILE_VERSION "2.1.0" // network config file version
 
 //  enable hotspot password
 #define ENABLE_HOTSPOT_PSW 0 // 0 -> password disabled
