@@ -13,6 +13,7 @@ ADC_MODE(ADC_TOUT) // NodeMCU ADC initialization: external pin reading values en
 // 1 -> password enabled
 
 // network defaults
+#define DEFAULT_DELAY        "5"
 #define DEFAULT_SSID         ""
 #define DEFAULT_PSWD         ""
 #define DEFAULT_HOTSPOT_SSID "AUGCMyStation"
@@ -26,6 +27,7 @@ ADC_MODE(ADC_TOUT) // NodeMCU ADC initialization: external pin reading values en
 #define NETWORK_CONFIG_FILE "/network.cfg"
 
 // tags for network configuration file
+#define DELAY_TAG        "Delay = "
 #define VERSION_TAG      "Version = "
 #define WIFI_SSID_TAG    "WiFiSSID = "
 #define WIFI_PSWD_TAG    "WiFiPassword = "
@@ -158,6 +160,12 @@ unsigned long CStation::getThingChannel(void)
   return (mychannel);
 }
 
+unsigned int CStation::getDelay(void)
+{
+  unsigned int mydelay = m_delay.toInt();
+  return (mydelay);
+}
+
 bool CStation::isBlynkKnownByIP(void)
 {
   IPAddress ip;
@@ -223,6 +231,7 @@ bool CStation::writeNetworkConfigFile(bool useDefault)
     configFile.printf("%s%s\n", BLYNK_TOKEN_TAG, DEFAULT_BLYNK_TOKEN);
     configFile.printf("%s%s\n", THING_CHANNEL_TAG, DEFAULT_THING_CHANNEL);
     configFile.printf("%s%s\n", THING_CHANNEL_TAG, DEFAULT_THING_APIKEY);
+    configFile.printf("%s%s\n", DELAY_TAG, DEFAULT_DELAY);
   }
   else {
     configFile.printf("%s%s\n", WIFI_SSID_TAG, m_wifiSSID.c_str());
@@ -234,6 +243,7 @@ bool CStation::writeNetworkConfigFile(bool useDefault)
     configFile.printf("%s%s\n", BLYNK_TOKEN_TAG, m_blynkToken.c_str());
     configFile.printf("%s%s\n", THING_CHANNEL_TAG, m_thingChannel.c_str());
     configFile.printf("%s%s\n", THING_APIKEY_TAG, m_thingApiKey.c_str());
+    configFile.printf("%s%s\n", DELAY_TAG, m_delay.c_str());
   }
   configFile.close();
   return (true);
@@ -301,6 +311,10 @@ bool CStation::readNetworkConfigFile(void)
       data.replace(THING_APIKEY_TAG, "");
       m_thingApiKey = data;
     }
+        else if (data.startsWith(DELAY_TAG)) {
+      data.replace(DELAY_TAG, "");
+      m_delay = data;
+    }
   }
   configFile.close();
   return (true);
@@ -327,6 +341,8 @@ void CStation::startHotspot(void)
   wifiManager.addParameter(&customThingChannel);
   WiFiManagerParameter customThingApiKey("ApiKey", "ThingSpeak ApiKey", m_thingApiKey.c_str(), 40);
   wifiManager.addParameter(&customThingApiKey);
+  WiFiManagerParameter customDelay("Delay", "DeepSleep Delay", m_delay.c_str(), 5);
+  wifiManager.addParameter(&customThingApiKey);
 
 #if ENABLE_HOTSPOT_PSW == 0
   wifiManager.startConfigPortal(m_hotspotSSID.c_str());
@@ -344,6 +360,7 @@ void CStation::startHotspot(void)
     m_blynkToken  = customBlynkToken.getValue();
     m_thingChannel = customThingChannel.getValue();
     m_thingApiKey = customThingApiKey.getValue();
+    m_delay = customDelay.getValue();
 
     if (!writeNetworkConfigFile()) {
 #ifdef USE_DEBUG
@@ -368,4 +385,5 @@ void CStation::setNetworkConfigDefaults(void)
   m_blynkToken  = DEFAULT_BLYNK_TOKEN;
   m_thingChannel = DEFAULT_THING_CHANNEL;
   m_thingApiKey = DEFAULT_THING_APIKEY;
+  m_delay = DEFAULT_DELAY;
 }

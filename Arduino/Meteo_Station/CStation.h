@@ -33,6 +33,7 @@ class CStation
     bool          isBlynkKnownByIP(void);
     unsigned int  getBatteryVoltage(void);
     bool          writeStationConfigFile(bool useDefaults = false);
+    unsigned int  getDelay(void);
 
   private:
     String   m_wifiSSID,
@@ -43,7 +44,8 @@ class CStation
              m_blynkPort,
              m_blynkToken,
              m_thingChannel,
-             m_thingApiKey;
+             m_thingApiKey,
+             m_delay;
 
     bool initFS(bool formatFS = false);
     bool writeNetworkConfigFile(bool useDefaults = false);

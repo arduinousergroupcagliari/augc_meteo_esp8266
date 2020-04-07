@@ -1,5 +1,5 @@
 /* Comment this out to disable prints and save space */
-#define DELAY 5 // minutes
+// #define DELAY 5 // minutes
 #define USE_DEBUG
 #define USE_BLYNK
 #define USE_THINGSPEAK
@@ -34,10 +34,10 @@ BH1750FVI myBH1750(BH1750_DEFAULT_I2CADDR, BH1750_CONTINUOUS_HIGH_RES_MODE_2, BH
 Adafruit_BME280 myBME280; // I2C
 WiFiClient client;
 
-const int FW_VERSION = 1010;
+const int FW_VERSION = 1200;
 bool DEV_VERSION = true;
 const char* fwServerBase = "raw.githubusercontent.com";
-const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/whit-update/bin/";
+const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/new-delay-option/bin/";
 const char* fwNameBase = "latest.version";
 const uint8_t fingerprint[20] = { 0xCC, 0xAA, 0x48, 0x48, 0x66, 0x46, 0x0E, 0x91, 0x53, 0x2C, 0x9C, 0x7C, 0x23, 0x2A, 0xB1, 0x74, 0x4D, 0x29, 0x9D, 0x33 };
 
@@ -59,14 +59,14 @@ void setup() {
   DEBUGLN(DEV_VERSION ? "Development version" : "Master version");
   DEBUGLN("Firmware number: " + String(FW_VERSION));
   DEBUGSPC();
-  
-//  // debug
-//  DEBUGLN(F("Waking WiFi up!!"));
-//  WiFi.forceSleepWake();
-//  if (!myStation.wifiConnect(true)) goSleep();
-//  checkupdate();
-//  goSleep();
-//  // fine debug
+
+  //  // debug
+  //  DEBUGLN(F("Waking WiFi up!!"));
+  //  WiFi.forceSleepWake();
+  //  if (!myStation.wifiConnect(true)) goSleep();
+  //  checkupdate();
+  //  goSleep();
+  //  // fine debug
 
   initStation();
   readSensorData();
@@ -228,7 +228,7 @@ void dataToThongSpeak() {
 void goSleep(void) {
   delay(1000);
   DEBUGLN(F("ESP8266 in sleep mode"));
-  ESP.deepSleep(DELAY * 60 * 1000000);
+  ESP.deepSleep(myStation.getDelay() * 60 * 1000000);
   DEBUGSPC();
 }
 
