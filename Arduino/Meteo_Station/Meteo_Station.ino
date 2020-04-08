@@ -1,26 +1,17 @@
 /* Comment this out to disable prints and save space */
-// #define DELAY 5 // minutes
 #define USE_DEBUG
-#define USE_BLYNK
-#define USE_THINGSPEAK
 
 #include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
 
-#ifdef USE_BLYNK
 #ifndef USE_DEBUG
-#else
 #define BLYNK_PRINT Serial
 #endif
 #include <BlynkSimpleEsp8266.h>
 #define BLYNK_TIMEOUT           5000 // milliseconds
-#endif
-#ifdef USE_THINGSPEAK
 #ifndef USE_DEBUG
-#else
 #define PRINT_DEBUG_MESSAGES
 #endif
 #include <ThingSpeak.h>
-#endif
 
 #include "CStation.h"
 #include <BH1750FVI.h>        //https://github.com/enjoyneering/BH1750FVI
@@ -44,7 +35,7 @@ const uint8_t fingerprint[20] = { 0xCC, 0xAA, 0x48, 0x48, 0x66, 0x46, 0x0E, 0x91
 float temperature, humidity, pressure, batteryVoltage;
 int batteryLevel, adcValue;
 unsigned int lux;
-bool useLuxSensor;
+bool useLuxSensor, useBlynk, useThingSpeak;
 
 void preinit() {
   ESP8266WiFiClass::preinitWiFiOff();
@@ -60,14 +51,6 @@ void setup() {
   DEBUGLN("Firmware number: " + String(FW_VERSION));
   DEBUGSPC();
 
-  //  // debug
-  //  DEBUGLN(F("Waking WiFi up!!"));
-  //  WiFi.forceSleepWake();
-  //  if (!myStation.wifiConnect(true)) goSleep();
-  //  checkupdate();
-  //  goSleep();
-  //  // fine debug
-
   initStation();
   readSensorData();
 
@@ -75,13 +58,8 @@ void setup() {
   WiFi.forceSleepWake();
   if (!myStation.wifiConnect(false)) goSleep();
 
-#ifdef USE_BLYNK
-  dataToBlynk();
-#endif
-
-#ifdef USE_THINGSPEAK
-  dataToThongSpeak();
-#endif
+  if (useBlynk) dataToBlynk();
+  if (useThingSpeak) dataToThongSpeak();
 
   checkupdate();
   goSleep();
@@ -92,9 +70,8 @@ void loop() {}
 
 
 void initStation(void) {
-  int mVolt;
-
-  mVolt = myStation.getBatteryVoltage();
+  DEBUGLN(F("Check Battery voltage..."));
+  int mVolt = myStation.getBatteryVoltage();
   if (mVolt < 3000) {
     DEBUGLN("Battery LOW: " + String(mVolt) + " mV");
     goSleep();
@@ -130,6 +107,26 @@ void initStation(void) {
   else {
     DEBUGLN(F("ROHM BH1750FVI is not present")); //(F()) saves string to flash & keeps dynamic memory free
     useLuxSensor = false;
+  }
+
+  DEBUG(F("Check Blynk configuration: "));
+  if (myStation.getBlynkToken() != "") {
+    useBlynk = true;
+    DEBUGLN(F("present."));
+  }
+  else
+  { useBlynk = false;
+    DEBUGLN(F("not present."));
+  }
+
+  DEBUG(F("Check ThingSpeak configuration: "));
+  if (myStation.getThingApiKey() != "") {
+    useThingSpeak = true;
+    DEBUGLN(F("present."));
+  }
+  else {
+    useThingSpeak = false;
+    DEBUGLN(F("not present."));
   }
 }
 
