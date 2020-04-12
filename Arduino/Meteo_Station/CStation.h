@@ -6,9 +6,8 @@
 
 #include <ESP8266WiFi.h>
 #include <WiFiManager.h>
-// #include <Arduino.h>
 
-#//define FIRMWARE_VERSION    "1.0.0" // firmware version
+// #define FIRMWARE_VERSION    "1.0.0" // firmware version
 #define NETWORK_CFG_FILE_VERSION "2.1.0" // network config file version
 
 //  enable hotspot password
@@ -53,6 +52,7 @@ class CStation
     bool readStationConfigFile(void);
     void setStationConfigDefaults(void);
     void setNetworkConfigDefaults(void);
+    bool updateNetworkFile;
 };
 
 #endif // !CStation

@@ -13,7 +13,7 @@ ADC_MODE(ADC_TOUT) // NodeMCU ADC initialization: external pin reading values en
 // 1 -> password enabled
 
 // network defaults
-#define DEFAULT_DELAY        "5"
+#define DEFAULT_DELAY        "15"
 #define DEFAULT_SSID         ""
 #define DEFAULT_PSWD         ""
 #define DEFAULT_HOTSPOT_SSID "AUGCMyStation"
@@ -62,11 +62,23 @@ CStation::CStation(): CStation(false)
 
 CStation::CStation(bool formatFS)
 {
+  updateNetworkFile = false;
   // ADC initialization (for battery voltage reading)
   pinMode(A0, INPUT);
 
   initFS(formatFS);
   if (!readNetworkConfigFile()) setNetworkConfigDefaults();
+  if (updateNetworkFile) {
+    if (!writeNetworkConfigFile()) {
+#ifdef USE_DEBUG
+      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Unable to update config file");
+#endif
+    } else {
+#ifdef USE_DEBUG
+      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Config file updated.");
+#endif
+    }
+  }
 }
 
 CStation::~CStation()
@@ -185,7 +197,7 @@ bool CStation::initFS(bool formatFS)
   // try to initialize the SPI file system
   if (!SPIFFS.begin()) {
 #ifdef USE_DEBUG
-    Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.println("\nSPIFFS initialization failed.");
+    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("\nSPIFFS initialization failed.");
 #endif
     return false;
   }
@@ -194,14 +206,14 @@ bool CStation::initFS(bool formatFS)
     // no config file present -> format the SPI file system
     if (!SPIFFS.format()) {
 #ifdef USE_DEBUG
-      Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.println("SPIFFS Format error.");
+      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("SPIFFS Format error.");
 #endif
       return (false);
     }
     // create the config file
     if (!writeNetworkConfigFile(true)) {
 #ifdef USE_DEBUG
-      Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
+      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
 #endif
       return (false);
     }
@@ -215,7 +227,7 @@ bool CStation::writeNetworkConfigFile(bool useDefault)
   File configFile = SPIFFS.open(NETWORK_CONFIG_FILE, "w");
   if (!configFile) {
 #ifdef USE_DEBUG
-    Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
+    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
 #endif
     return (false);
   }
@@ -254,7 +266,7 @@ bool CStation::readNetworkConfigFile(void)
   File configFile = SPIFFS.open(NETWORK_CONFIG_FILE, "r");
   if (!configFile) {
 #ifdef USE_DEBUG
-    Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.printf("Unable to open %s file.\n", NETWORK_CONFIG_FILE);
+    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Unable to open %s file.\n", NETWORK_CONFIG_FILE);
 #endif
     return (false);
   }
@@ -265,14 +277,23 @@ bool CStation::readNetworkConfigFile(void)
     if (data.startsWith(VERSION_TAG)) {
       data.replace(VERSION_TAG, "");
       if (data != NETWORK_CFG_FILE_VERSION) {
+        if (data == "2.0.0") {
 #ifdef USE_DEBUG
-        Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.println("Wrong firmware version, loading defaults.");
+          Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Old firmware version, need update.");
 #endif
-        // different firmware version -> generate a new default one
-        configFile.close();
-        writeNetworkConfigFile(true);
-        setNetworkConfigDefaults();
-        return (true);
+          m_delay = DEFAULT_DELAY;
+          updateNetworkFile = true;
+        }
+        else {
+#ifdef USE_DEBUG
+          Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Wrong firmware version, loading defaults.");
+#endif
+          // different firmware version -> generate a new default one
+          configFile.close();
+          writeNetworkConfigFile(true);
+          setNetworkConfigDefaults();
+          return (true);
+        }
       }
     }
     else if (data.startsWith(WIFI_SSID_TAG)) {
@@ -311,7 +332,7 @@ bool CStation::readNetworkConfigFile(void)
       data.replace(THING_APIKEY_TAG, "");
       m_thingApiKey = data;
     }
-        else if (data.startsWith(DELAY_TAG)) {
+    else if (data.startsWith(DELAY_TAG)) {
       data.replace(DELAY_TAG, "");
       m_delay = data;
     }
@@ -351,24 +372,24 @@ void CStation::startHotspot(void)
 #endif
 
   if (shouldSaveConfig) {
-    m_wifiSSID    = WiFi.SSID();
-    m_wifiPSW     = WiFi.psk();
-    m_hotspotSSID = customHotspotSSID.getValue();
-    m_hotspotPSW  = customHotspotPSW.getValue();
-    m_blynkServer = customBlynkServer.getValue();
-    m_blynkPort   = customBlynkPort.getValue();
-    m_blynkToken  = customBlynkToken.getValue();
+    m_wifiSSID     = WiFi.SSID();
+    m_wifiPSW      = WiFi.psk();
+    m_hotspotSSID  = customHotspotSSID.getValue();
+    m_hotspotPSW   = customHotspotPSW.getValue();
+    m_blynkServer  = customBlynkServer.getValue();
+    m_blynkPort    = customBlynkPort.getValue();
+    m_blynkToken   = customBlynkToken.getValue();
     m_thingChannel = customThingChannel.getValue();
-    m_thingApiKey = customThingApiKey.getValue();
-    m_delay = customDelay.getValue();
+    m_thingApiKey  = customThingApiKey.getValue();
+    m_delay        = customDelay.getValue();
 
     if (!writeNetworkConfigFile()) {
 #ifdef USE_DEBUG
-      Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.println("Unable to writing config file");
+      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Unable to writing config file");
 #endif
     } else {
 #ifdef USE_DEBUG
-      Serial.print("["); Serial.print(millis()); Serial.print("] ");Serial.println("Config file written.");
+      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Config file written.");
 #endif
     }
   }
