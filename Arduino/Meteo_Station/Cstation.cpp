@@ -56,11 +56,11 @@ void saveConfigCallback() {
 }
 // ------------------------------------------------------------------------------------------------------------
 
-CStation::CStation(): CStation(false)
+CStation::CStation()
 {
 }
 
-CStation::CStation(bool formatFS)
+void CStation::initStation(bool formatFS)
 {
   updateNetworkFile = false;
   // ADC initialization (for battery voltage reading)
@@ -276,6 +276,9 @@ bool CStation::readNetworkConfigFile(void)
     String data = configFile.readStringUntil('\n');
     if (data.startsWith(VERSION_TAG)) {
       data.replace(VERSION_TAG, "");
+#ifdef USE_DEBUG
+      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.print("Network file configuration version: "); Serial.println(data);
+#endif
       if (data != NETWORK_CFG_FILE_VERSION) {
         if (data == "2.0.0") {
 #ifdef USE_DEBUG
@@ -363,7 +366,7 @@ void CStation::startHotspot(void)
   WiFiManagerParameter customThingApiKey("ApiKey", "ThingSpeak ApiKey", m_thingApiKey.c_str(), 40);
   wifiManager.addParameter(&customThingApiKey);
   WiFiManagerParameter customDelay("Delay", "DeepSleep Delay", m_delay.c_str(), 5);
-  wifiManager.addParameter(&customThingApiKey);
+  wifiManager.addParameter(&customDelay);
 
 #if ENABLE_HOTSPOT_PSW == 0
   wifiManager.startConfigPortal(m_hotspotSSID.c_str());

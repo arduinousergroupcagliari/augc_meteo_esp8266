@@ -19,8 +19,8 @@ class CStation
 {
   public:
     CStation();
-    CStation(bool formatFS);
     ~CStation();
+    void          initStation(bool formatFS);
     void          startHotspot(void);
     bool          wifiConnect(bool autoStartHotspot = true);
     IPAddress     getBlynkIP(void);

@@ -25,7 +25,7 @@ BH1750FVI myBH1750(BH1750_DEFAULT_I2CADDR, BH1750_CONTINUOUS_HIGH_RES_MODE_2, BH
 Adafruit_BME280 myBME280; // I2C
 WiFiClient client;
 
-const int FW_VERSION = 1200;
+const int FW_VERSION = 1100;
 bool DEV_VERSION = true;
 const char* fwServerBase = "raw.githubusercontent.com";
 const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/new-delay-option/bin/";
@@ -70,6 +70,7 @@ void loop() {}
 
 
 void initStation(void) {
+  myStation.initStation(false);
   DEBUGLN(F("Check Battery voltage..."));
   int mVolt = myStation.getBatteryVoltage();
   if (mVolt < 3000) {
@@ -109,25 +110,27 @@ void initStation(void) {
     useLuxSensor = false;
   }
 
-  DEBUG(F("Check Blynk configuration: "));
+  DEBUG(F("Blynk configuration: "));
   if (myStation.getBlynkToken() != "") {
     useBlynk = true;
-    DEBUGLN(F("present."));
+    DEBUGP(F("present."));
   }
   else
   { useBlynk = false;
-    DEBUGLN(F("not present."));
+    DEBUGP(F("not present."));
   }
+  DEBUGSPC();
 
-  DEBUG(F("Check ThingSpeak configuration: "));
+  DEBUG(F("ThingSpeak configuration: "));
   if (myStation.getThingApiKey() != "") {
     useThingSpeak = true;
-    DEBUGLN(F("present."));
+    DEBUGP(F("present."));
   }
   else {
     useThingSpeak = false;
-    DEBUGLN(F("not present."));
+    DEBUGP(F("not present."));
   }
+  DEBUGSPC();
 }
 
 
@@ -224,7 +227,7 @@ void dataToThongSpeak() {
 
 void goSleep(void) {
   delay(1000);
-  DEBUGLN(F("ESP8266 in sleep mode"));
+  DEBUGLN("ESP8266 in sleep mode: " + (String)myStation.getDelay() + " minutes");
   ESP.deepSleep(myStation.getDelay() * 60 * 1000000);
   DEBUGSPC();
 }
