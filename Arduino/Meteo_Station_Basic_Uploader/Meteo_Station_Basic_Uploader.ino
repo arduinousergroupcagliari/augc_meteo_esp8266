@@ -33,11 +33,11 @@
 #define THING_CHANNEL_TAG "ThingChannel = "
 #define THING_APIKEY_TAG  "ThingApiKey = "
 
-#include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
+//#include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
 #include <WiFiManager.h>
 #include <ESP8266httpUpdate.h>
 #include <time.h>
-#include <FS.h>
+#include <LittleFS.h>
 
 WiFiClient client;
 
@@ -90,37 +90,37 @@ bool initFS(bool formatFS)
   Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Try to initialize the SPI file system...");
 #endif
   // try to initialize the SPI file system
-  if (!SPIFFS.begin()) {
+  if (!LittleFS.begin()) {
 #ifdef USE_DEBUG
-    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("SPIFFS initialization failed.");
+    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("LittleFS initialization failed.");
 #endif
     return false;
   }
   else
   {
 #ifdef USE_DEBUG
-    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("SPIFFS initialization success.");
+    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("LittleFS initialization success.");
 #endif
   }
 
 #ifdef USE_DEBUG
   Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Search for %s file\n", NETWORK_CONFIG_FILE);
 #endif
-  if (!SPIFFS.exists(NETWORK_CONFIG_FILE) || formatFS) {
+  if (!LittleFS.exists(NETWORK_CONFIG_FILE) || formatFS) {
     // no config file present -> format the SPI file system
 #ifdef USE_DEBUG
-    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Check SPIFFS format...");
+    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Check LittleFS format...");
 #endif
-    if (!SPIFFS.format()) {
+    if (!LittleFS.format()) {
 #ifdef USE_DEBUG
-      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("SPIFFS Format error.");
+      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("LittleFS Format error.");
 #endif
       return (false);
     }
     else
     {
 #ifdef USE_DEBUG
-      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("SPIFFS Format success.");
+      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("LittleFS Format success.");
 #endif
     }
     // create the config file
@@ -149,7 +149,7 @@ bool initFS(bool formatFS)
 
 bool readNetworkConfigFile(void)
 {
-  File configFile = SPIFFS.open(NETWORK_CONFIG_FILE, "r");
+  File configFile = LittleFS.open(NETWORK_CONFIG_FILE, "r");
   if (!configFile) {
 #ifdef USE_DEBUG
     Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Unable to open %s file.\n", NETWORK_CONFIG_FILE);
@@ -228,7 +228,7 @@ bool readNetworkConfigFile(void)
 
 bool writeNetworkConfigFile(bool useDefault)
 {
-  File configFile = SPIFFS.open(NETWORK_CONFIG_FILE, "w");
+  File configFile = LittleFS.open(NETWORK_CONFIG_FILE, "w");
   if (!configFile) {
 #ifdef USE_DEBUG
     Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
