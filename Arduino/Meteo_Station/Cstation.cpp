@@ -1,5 +1,5 @@
 #include "CStation.h"
-#include "FS.h"
+#include "LittleFS.h"
 
 ADC_MODE(ADC_TOUT) // NodeMCU ADC initialization: external pin reading values enabled
 #define ADC_BATTERY_COEFFICENT 1000.0 // ADC correction factor... depending on the voltage divider
@@ -195,18 +195,18 @@ unsigned int CStation::getBatteryVoltage(void)
 bool CStation::initFS(bool formatFS)
 {
   // try to initialize the SPI file system
-  if (!SPIFFS.begin()) {
+  if (!LittleFS.begin()) {
 #ifdef USE_DEBUG
-    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("\nSPIFFS initialization failed.");
+    Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("\nLittleFS initialization failed.");
 #endif
     return false;
   }
 
-  if (!SPIFFS.exists(NETWORK_CONFIG_FILE) || formatFS) {
+  if (!LittleFS.exists(NETWORK_CONFIG_FILE) || formatFS) {
     // no config file present -> format the SPI file system
-    if (!SPIFFS.format()) {
+    if (!LittleFS.format()) {
 #ifdef USE_DEBUG
-      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("SPIFFS Format error.");
+      Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("LittleFS Format error.");
 #endif
       return (false);
     }
@@ -224,7 +224,7 @@ bool CStation::initFS(bool formatFS)
 
 bool CStation::writeNetworkConfigFile(bool useDefault)
 {
-  File configFile = SPIFFS.open(NETWORK_CONFIG_FILE, "w");
+  File configFile = LittleFS.open(NETWORK_CONFIG_FILE, "w");
   if (!configFile) {
 #ifdef USE_DEBUG
     Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
@@ -263,7 +263,7 @@ bool CStation::writeNetworkConfigFile(bool useDefault)
 
 bool CStation::readNetworkConfigFile(void)
 {
-  File configFile = SPIFFS.open(NETWORK_CONFIG_FILE, "r");
+  File configFile = LittleFS.open(NETWORK_CONFIG_FILE, "r");
   if (!configFile) {
 #ifdef USE_DEBUG
     Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.printf("Unable to open %s file.\n", NETWORK_CONFIG_FILE);
