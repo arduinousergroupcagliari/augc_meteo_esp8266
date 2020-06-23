@@ -14,7 +14,6 @@
 #include <ThingSpeak.h>
 
 #include "CStation.h"
-//#include <BH1750FVI.h>        //https://github.com/enjoyneering/BH1750FVI
 #include <hp_BH1750.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
@@ -30,9 +29,8 @@ WiFiClient client;
 const int FW_VERSION = 1150;
 bool DEV_VERSION = true;
 const char* fwServerBase = "raw.githubusercontent.com";
-const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/new-delay-option/bin/";
+const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/LittleFS/bin/";
 const char* fwNameBase = "latest.version";
-//const uint8_t fingerprint[20] = { 0xCC, 0xAA, 0x48, 0x48, 0x66, 0x46, 0x0E, 0x91, 0x53, 0x2C, 0x9C, 0x7C, 0x23, 0x2A, 0xB1, 0x74, 0x4D, 0x29, 0x9D, 0x33 };
 const uint8_t fingerprint[20] = { 0x70, 0x94, 0xDE, 0xDD, 0xE6, 0xC4, 0x69, 0x48, 0x3A, 0x92, 0x70, 0xA1, 0x48, 0x56, 0x78, 0x2D, 0x18, 0x64, 0xE0, 0xB7 };
 
 float temperature, humidity, pressure, batteryVoltage;
@@ -104,8 +102,6 @@ void initStation(void) {
   if (myBH1750.begin(BH1750_TO_GROUND) == true)                //BH1750_TO_GROUND = 0x23
   {
     myBH1750.calibrateTiming();
-    //myBH1750.setResolution(BH1750_CONTINUOUS_HIGH_RES_MODE);
-    //myBH1750.setSensitivity(1.61);
     useLuxSensor = true;
     DEBUGLN(F("ROHM BH1750FVI inizialized"));
   }
