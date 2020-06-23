@@ -3,7 +3,7 @@
 
 // how many seconds should try to connect to the wifi network
 #define WIFI_TIMEOUT       5    // seconds
-#define NETWORK_CFG_FILE_VERSION "2.1.0" // network config file version
+#define NETWORK_CFG_FILE_VERSION "2.2.0" // network config file version
 #define ENABLE_HOTSPOT_PSW 0 // 0 -> password disabled 1 -> password enabled
 
 // network defaults
@@ -45,7 +45,7 @@ const int FW_VERSION = 0;
 const char* fwServerBase = "raw.githubusercontent.com";
 const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/new-delay-option/bin/";
 const char* fwNameBase = "latest.version";
-const uint8_t fingerprint[20] = { 0xCC, 0xAA, 0x48, 0x48, 0x66, 0x46, 0x0E, 0x91, 0x53, 0x2C, 0x9C, 0x7C, 0x23, 0x2A, 0xB1, 0x74, 0x4D, 0x29, 0x9D, 0x33 };
+const uint8_t fingerprint[20] = { 0x70, 0x94, 0xDE, 0xDD, 0xE6, 0xC4, 0x69, 0x48, 0x3A, 0x92, 0x70, 0xA1, 0x48, 0x56, 0x78, 0x2D, 0x18, 0x64, 0xE0, 0xB7 };
 
 // WifiManager callbacks and variables ------------------------------------------------------------------------
 bool shouldSaveConfig;

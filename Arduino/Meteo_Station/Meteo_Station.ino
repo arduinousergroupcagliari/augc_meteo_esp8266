@@ -14,14 +14,16 @@
 #include <ThingSpeak.h>
 
 #include "CStation.h"
-#include <BH1750FVI.h>        //https://github.com/enjoyneering/BH1750FVI
+//#include <BH1750FVI.h>        //https://github.com/enjoyneering/BH1750FVI
+#include <hp_BH1750.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <ESP8266httpUpdate.h>
 #include <time.h>
 
 CStation myStation;
-BH1750FVI myBH1750(BH1750_DEFAULT_I2CADDR, BH1750_CONTINUOUS_HIGH_RES_MODE_2, BH1750_SENSITIVITY_DEFAULT, BH1750_ACCURACY_DEFAULT);
+hp_BH1750 myBH1750;
+//BH1750FVI myBH1750(BH1750_DEFAULT_I2CADDR, BH1750_CONTINUOUS_HIGH_RES_MODE_2, BH1750_SENSITIVITY_DEFAULT, BH1750_ACCURACY_DEFAULT);
 Adafruit_BME280 myBME280; // I2C
 WiFiClient client;
 
@@ -30,7 +32,8 @@ bool DEV_VERSION = true;
 const char* fwServerBase = "raw.githubusercontent.com";
 const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/new-delay-option/bin/";
 const char* fwNameBase = "latest.version";
-const uint8_t fingerprint[20] = { 0xCC, 0xAA, 0x48, 0x48, 0x66, 0x46, 0x0E, 0x91, 0x53, 0x2C, 0x9C, 0x7C, 0x23, 0x2A, 0xB1, 0x74, 0x4D, 0x29, 0x9D, 0x33 };
+//const uint8_t fingerprint[20] = { 0xCC, 0xAA, 0x48, 0x48, 0x66, 0x46, 0x0E, 0x91, 0x53, 0x2C, 0x9C, 0x7C, 0x23, 0x2A, 0xB1, 0x74, 0x4D, 0x29, 0x9D, 0x33 };
+const uint8_t fingerprint[20] = { 0x70, 0x94, 0xDE, 0xDD, 0xE6, 0xC4, 0x69, 0x48, 0x3A, 0x92, 0x70, 0xA1, 0x48, 0x56, 0x78, 0x2D, 0x18, 0x64, 0xE0, 0xB7 };
 
 float temperature, humidity, pressure, batteryVoltage;
 int batteryLevel, adcValue;
@@ -98,10 +101,11 @@ void initStation(void) {
   DEBUGLN(F("BME280 sensor inizialized"));
 
   DEBUGLN(F("Initialize BH1750FVI..."));
-  if (myBH1750.begin(D2, D1) == true)                //SDA - D2, SCL - D1
+  if (myBH1750.begin(BH1750_TO_GROUND) == true)                //BH1750_TO_GROUND = 0x23
   {
-    myBH1750.setResolution(BH1750_CONTINUOUS_HIGH_RES_MODE);
-    myBH1750.setSensitivity(1.61);
+    myBH1750.calibrateTiming();
+    //myBH1750.setResolution(BH1750_CONTINUOUS_HIGH_RES_MODE);
+    //myBH1750.setSensitivity(1.61);
     useLuxSensor = true;
     DEBUGLN(F("ROHM BH1750FVI inizialized"));
   }
@@ -148,7 +152,16 @@ void readSensorData(void) {
   adcValue       = analogRead(A0);
   batteryLevel   = constrain(map(batteryVoltage, 0, 4200, 0, 100), 0, 100);
   if (useLuxSensor)
-    lux = myBH1750.readLightLevel();
+  {
+    myBH1750.start(BH1750_QUALITY_LOW, 31);    //  starts a measurement at low quality
+    float val = myBH1750.getLux();           //  do a blocking read and waits until a result receives
+    myBH1750.start(BH1750_QUALITY_HIGH2, 254); //  starts a measurement with high quality but restricted range in brightness
+    val = myBH1750.getLux();
+    if (myBH1750.saturated() == true) {
+      val = val * myBH1750.getMtregTime() / myBH1750.getTime();  //  here we calculate from a saturated sensor the brightness!
+    }
+    lux = (unsigned int)val;
+  }
 
   DEBUGLN(F("Data readed"));
   DEBUGLN("temperature:    " + String(temperature) + " °C");
@@ -313,7 +326,7 @@ void checkupdate() {
 }
 
 void checkNtpClock() {
-  configTime(0, 0, "pool.ntp.org", "time.nist.gov");  // UTC
+  configTime("CET-1CEST,M3.5.0,M10.5.0/3", "pool.ntp.org", "time.nist.gov", "time.windows.com");  // TZ Rome
 
   DEBUG(F("Waiting for NTP time sync: "));
   time_t now = time(nullptr);
