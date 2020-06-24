@@ -7,7 +7,7 @@
 #define ENABLE_HOTSPOT_PSW 0 // 0 -> password disabled 1 -> password enabled
 
 // network defaults
-#define DEFAULT_DELAY        "5"
+#define DEFAULT_DELAY        "15"
 #define DEFAULT_SSID         ""
 #define DEFAULT_PSWD         ""
 #define DEFAULT_HOTSPOT_SSID "AUGCMyStation"
