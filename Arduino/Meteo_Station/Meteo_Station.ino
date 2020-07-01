@@ -26,7 +26,7 @@ hp_BH1750 myBH1750;
 Adafruit_BME280 myBME280; // I2C
 WiFiClient client;
 
-const int FW_VERSION = 1161;
+const int FW_VERSION = 1200;
 bool DEV_VERSION = true;
 const char* fwServerBase = "raw.githubusercontent.com";
 const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/LittleFS/bin/";

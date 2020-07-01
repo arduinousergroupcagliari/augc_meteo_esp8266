@@ -27,7 +27,7 @@ ADC_MODE(ADC_TOUT) // NodeMCU ADC initialization: external pin reading values en
 #define NETWORK_CONFIG_FILE "/network.cfg"
 
 // tags for network configuration file
-#define DELAY_TAG        "Delay = "
+#define DELAY_TAG        "DeepSleepDelay = "
 #define VERSION_TAG      "Version = "
 #define WIFI_SSID_TAG    "WiFiSSID = "
 #define WIFI_PSWD_TAG    "WiFiPassword = "
@@ -369,7 +369,7 @@ void CStation::startHotspot(void)
   wifiManager.addParameter(&customThingChannel);
   WiFiManagerParameter customThingApiKey("ApiKey", "ThingSpeak ApiKey", m_thingApiKey.c_str(), 40);
   wifiManager.addParameter(&customThingApiKey);
-  WiFiManagerParameter customDelay("Delay", "DeepSleep Delay", m_delay.c_str(), 5);
+  WiFiManagerParameter customDelay("DS Delay", "DeepSleep Delay", m_delay.c_str(), 5);
   wifiManager.addParameter(&customDelay);
 
 #if ENABLE_HOTSPOT_PSW == 0
