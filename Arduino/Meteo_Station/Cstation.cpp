@@ -282,14 +282,14 @@ bool CStation::readNetworkConfigFile(void)
       if (data != NETWORK_CFG_FILE_VERSION) {
         if (data == "2.0.0") {
 #ifdef USE_DEBUG
-          Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Old firmware version, need update.");
+          Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Old Network file version, need update.");
 #endif
           m_delay = DEFAULT_DELAY;
           updateNetworkFile = true;
         }
         else {
 #ifdef USE_DEBUG
-          Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Wrong firmware version, loading defaults.");
+          Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Wrong Network file version, loading defaults.");
 #endif
           // different firmware version -> generate a new default one
           configFile.close();
@@ -298,6 +298,10 @@ bool CStation::readNetworkConfigFile(void)
           return (true);
         }
       }
+      else
+      {
+          Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.print("Network file configuration ok.");
+        }
     }
     else if (data.startsWith(WIFI_SSID_TAG)) {
       data.replace(WIFI_SSID_TAG, "");
