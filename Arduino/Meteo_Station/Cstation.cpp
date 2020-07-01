@@ -6,7 +6,7 @@ ADC_MODE(ADC_TOUT) // NodeMCU ADC initialization: external pin reading values en
 #define BATTERY_VOLTAGE (4.2 / 1024.0) * ADC_BATTERY_COEFFICENT // mv
 
 // how many seconds should try to connect to the wifi network
-#define WIFI_TIMEOUT       5    // seconds
+#define WIFI_TIMEOUT       10    // seconds
 
 //  enable hotspot password
 #define ENABLE_HOTSPOT_PSW 0 // 0 -> password disabled
