@@ -2,6 +2,8 @@
 #define USE_DEBUG
 
 #include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
+#include <ESP8266httpUpdate.h>
+#include <time.h>
 
 #ifndef USE_DEBUG
 #define BLYNK_PRINT Serial
@@ -17,16 +19,13 @@
 #include <hp_BH1750.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
-#include <ESP8266httpUpdate.h>
-#include <time.h>
 
 CStation myStation;
 hp_BH1750 myBH1750;
-//BH1750FVI myBH1750(BH1750_DEFAULT_I2CADDR, BH1750_CONTINUOUS_HIGH_RES_MODE_2, BH1750_SENSITIVITY_DEFAULT, BH1750_ACCURACY_DEFAULT);
-Adafruit_BME280 myBME280; // I2C
+Adafruit_BME280 myBME280;
 WiFiClient client;
 
-const int FW_VERSION = 1200;
+const int FW_VERSION = 1210;
 bool DEV_VERSION = true;
 const char* fwServerBase = "raw.githubusercontent.com";
 const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/LittleFS/bin/";
@@ -106,7 +105,7 @@ void initStation(void) {
     DEBUGLN(F("ROHM BH1750FVI inizialized"));
   }
   else {
-    DEBUGLN(F("ROHM BH1750FVI is not present")); //(F()) saves string to flash & keeps dynamic memory free
+    DEBUGLN(F("ROHM BH1750FVI is not present"));
     useLuxSensor = false;
   }
 
@@ -149,9 +148,9 @@ void readSensorData(void) {
   batteryLevel   = constrain(map(batteryVoltage, 0, 4200, 0, 100), 0, 100);
   if (useLuxSensor)
   {
-    myBH1750.start(BH1750_QUALITY_LOW, 31);    //  starts a measurement at low quality
-    float val = myBH1750.getLux();           //  do a blocking read and waits until a result receives
-    myBH1750.start(BH1750_QUALITY_HIGH2, 254); //  starts a measurement with high quality but restricted range in brightness
+    myBH1750.start(BH1750_QUALITY_LOW, 31);   //  starts a measurement at low quality
+    float val = myBH1750.getLux();            //  do a blocking read and waits until a result receives
+    myBH1750.start(BH1750_QUALITY_HIGH2, 254);//  starts a measurement with high quality but restricted range in brightness
     val = myBH1750.getLux();
     if (myBH1750.saturated() == true) {
       val = val * myBH1750.getMtregTime() / myBH1750.getTime();  //  here we calculate from a saturated sensor the brightness!

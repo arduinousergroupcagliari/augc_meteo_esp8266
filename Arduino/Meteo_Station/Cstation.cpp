@@ -300,8 +300,8 @@ bool CStation::readNetworkConfigFile(void)
       }
       else
       {
-          Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.print("Network file configuration ok.");
-        }
+        Serial.print("["); Serial.print(millis()); Serial.print("] "); Serial.println("Network file configuration ok.");
+      }
     }
     else if (data.startsWith(WIFI_SSID_TAG)) {
       data.replace(WIFI_SSID_TAG, "");

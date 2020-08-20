@@ -7,7 +7,6 @@
 #include <ESP8266WiFi.h>
 #include <WiFiManager.h>
 
-// #define FIRMWARE_VERSION    "1.0.0" // firmware version
 #define NETWORK_CFG_FILE_VERSION "2.2.0" // network config file version
 
 //  enable hotspot password
