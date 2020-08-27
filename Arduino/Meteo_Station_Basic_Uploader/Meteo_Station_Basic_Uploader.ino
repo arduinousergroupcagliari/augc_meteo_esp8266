@@ -33,8 +33,7 @@
 #define THING_CHANNEL_TAG "ThingChannel = "
 #define THING_APIKEY_TAG  "ThingApiKey = "
 
-//#include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
-#include <WiFiManager.h>
+#include <WiFiManager.h>                  // on Arduino Library Manager  --> WiFimanager by Tzapu,Tablatronix version 0.15.0
 #include <ESP8266httpUpdate.h>
 #include <time.h>
 #include <LittleFS.h>
