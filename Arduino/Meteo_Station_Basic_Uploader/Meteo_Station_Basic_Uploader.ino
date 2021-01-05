@@ -55,7 +55,7 @@ String   m_delay, m_wifiSSID, m_wifiPSW, m_hotspotSSID, m_hotspotPSW, m_blynkSer
 void setup() {
   Serial.begin(74880);
   DEBUGSPC();
-  DEBUGLN(F("METEO STATION!!"));
+  DEBUGLN(F("METEO STATION BASIC UPLOADER!!"));
   DEBUGLN("Firmware version: " + String(FW_VERSION));
   DEBUGSPC();
 
