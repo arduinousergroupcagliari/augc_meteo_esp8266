@@ -59,7 +59,7 @@ void setup() {
   if (!myStation.wifiConnect(false)) goSleep();
 
   if (useBlynk) dataToBlynk();
-  if (useThingSpeak) dataToThongSpeak();
+  if (useThingSpeak) dataToThingSpeak();
 
   checkupdate();
   goSleep();
@@ -209,7 +209,7 @@ void dataToBlynk(void) {
   }
 }
 
-void dataToThongSpeak() {
+void dataToThingSpeak() {
   DEBUGLN(F("Inizialize ThingSpeak..."));
   ThingSpeak.begin(client);  // Initialize ThingSpeak
   ThingSpeak.setStatus((DEV_VERSION ? "Running... Dev_" : "Running... Master_") + String(FW_VERSION));
