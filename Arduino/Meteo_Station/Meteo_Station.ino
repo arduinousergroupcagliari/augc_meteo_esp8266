@@ -25,10 +25,10 @@ hp_BH1750 myBH1750;
 Adafruit_BME280 myBME280;
 WiFiClient client;
 
-const int FW_VERSION = 1216;
+const int FW_VERSION = 1220;
 bool DEV_VERSION = true;
 const char* fwServerBase = "raw.githubusercontent.com";
-const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/LittleFS/bin/";
+const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/dev/bin/";
 const char* fwNameBase = "latest.version";
 const uint8_t fingerprint[20] = { 0x70, 0x94, 0xDE, 0xDD, 0xE6, 0xC4, 0x69, 0x48, 0x3A, 0x92, 0x70, 0xA1, 0x48, 0x56, 0x78, 0x2D, 0x18, 0x64, 0xE0, 0xB7 };
 
