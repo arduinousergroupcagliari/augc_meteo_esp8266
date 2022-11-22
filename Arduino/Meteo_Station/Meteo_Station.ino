@@ -17,7 +17,7 @@
 
 #include "CStation.h"
 #include <hp_BH1750.h>
-#include <Adafruit_Sensor.h>
+//#include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 
 CStation myStation;
