@@ -1,11 +1,10 @@
-/* Comment this out to disable prints and save space */
-#define USE_DEBUG
 
 // how many seconds should try to connect to the wifi network
 #define WIFI_TIMEOUT 5                    // seconds
 #define NETWORK_CFG_FILE_VERSION "2.2.0"  // network config file version
 #define NETWORK_CONFIG_FILE "/network.cfg"
 #define ENABLE_HOTSPOT_PSW 0  // 0 -> password disabled 1 -> password enabled
+
 
 // network defaults
 #define DEFAULT_DELAY "15"
@@ -18,6 +17,7 @@
 #define DEFAULT_BLYNK_TOKEN ""
 #define DEFAULT_THING_CHANNEL ""
 #define DEFAULT_THING_APIKEY ""
+
 
 // tags for network configuration file
 #define DELAY_TAG "DeepSleepDelay = "
@@ -32,63 +32,83 @@
 #define THING_CHANNEL_TAG "ThingChannel = "
 #define THING_APIKEY_TAG "ThingApiKey = "
 
+
+#include "utility.h"
 #include <WiFiManager.h>  // on Arduino Library Manager  --> WiFimanager by Tzapu,Tablatronix version 0.15.0
 #include <HTTPUpdate.h>
 #include <WiFiClientSecure.h>
 #include <time.h>
 #include <SPIFFS.h>
 
+
 const int FW_VERSION = 0;
 const char* fwServerBase = "raw.githubusercontent.com";
 const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/dev/bin/";
 const char* fwNameBase = "latest.version";
-
-// Certificato SSL del server (valido al momento della scrittura, potrebbe cambiare)
 const char* rootCACertificate =
   "-----BEGIN CERTIFICATE-----\n"
-  "MIIFazCCA1OgAwIBAgIQDkYYPRAHT+G6r2JQ2QmFCzANBgkqhkiG9w0BAQsFADBG\n"
-  "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMR2l0SHViLCBJbmMuMR8wHQYDVQQDExZ3\n"
-  "d3cucmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbTAeFw0xOTAxMTcwMDAwMDBaFw0y\n"
-  "MDEyMjMxMjAwMDBaMEYxCzAJBgNVBAYTAlVTMRUwEwYDVQQKEwxHaXRIdWIuIElu\n"
-  "Yy4xHzAdBgNVBAMTFnd3dy5yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tMIIBIjAN\n"
-  "BgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv6Fz+n8VSfCEUdd1N0LF0/BveHE1\n"
-  "eUtN/oQYWWFU0V8xGbzYyKTL/ESX9HK1U5+wneiyEorT4D9bNL8+PdYGAFAgE8XI\n"
-  "K8WaFbp58hVlh3V07FqOqj3plLsO9G2ZnyuVG5OfUKR3vFMUEfXvhpaQ32ZlMcOf\n"
-  "9mb/h00ebfbFNhTib2RGoBc/R5K2fxySZg+hhWUzX7xz4/UWDTNOGN2Oxw6ihfLo\n"
-  "sD9B50uUwKhfZXGknlBRrbT9t+4Uo9uCGGhzOvC/J6VxPzVXOnzKx71Qw/WI6HHu\n"
-  "Wx8FYxOufYfHf0MA0TbJq62IlC8tyVDSXpBaUIKhCbM4hU6GBR0txLxhGgwIDAQAB\n"
-  "o4ICXjCCAlowHwYDVR0jBBgwFoAUclSBUQwej6W5arYPtmAx6g2sG9YwHQYDVR0O\n"
-  "BBYEFHFLgI2SMVVb+UuNPXTKF/hCm1mFMA4GA1UdDwEB/wQEAwIFoDAMBgNVHRMB\n"
-  "Af8EAjAAMHkGA1UdEQRyMHAwHoIdd3d3LnJhdy5naXRodWJ1c2VyY29udGVudC5j\n"
-  "b22CHXJhd3JlcG8uZ2l0aHVidXNlcmNvbnRlbnQuY29tgi1naXRodWJ1c2VyY29u\n"
-  "dGVudC5jb22CImdpdGh1YnVzZXJjb250ZW50LmNvbS5yYXcuZ2l0aHVidXNlcmNv\n"
-  "bnRlbnQuY29tMA0GCSqGSIb3DQEBCwUAA4IBAQBCY01PCT7b7N2BWRIrB/IyXoik\n"
-  "mCBG8IVgVpC3yQ5t0k2/d1jX+zBRpypl45m3MKqABW6E8wsA0Bqmt2WmD9VLsdKZ\n"
-  "y/7bbWBdugKxlR5jj5SmgykpD3dbRld6vGwFm5QksDEERvBFt+eR90UwUB3icb0c\n"
-  "g00/6Ru7NCXkiVXh5tCH3/7EUxg8zLZ7h/mExTxNO0o6xPiP3bdnYz8ugfNBhMG0\n"
-  "EBfPzyS3RMoHnBaROBl8B3w0Ed2W+nX2LDwktGzSbG5Pytm1x7Z+n59eDlLRA75o\n"
-  "vSDwGHdhDp4ifrohl3P7BjMk3N7Wy6bB43jzU/1LSKrzeRfvlJ4YEl6u3r4rMTcR\n"
+  "MIIHOTCCBiGgAwIBAgIQBj1JF0BNOeUTyz/uzRsuGzANBgkqhkiG9w0BAQsFADBZ\n"
+  "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMTMwMQYDVQQDEypE\n"
+  "aWdpQ2VydCBHbG9iYWwgRzIgVExTIFJTQSBTSEEyNTYgMjAyMCBDQTEwHhcNMjQw\n"
+  "MzE1MDAwMDAwWhcNMjUwMzE0MjM1OTU5WjBnMQswCQYDVQQGEwJVUzETMBEGA1UE\n"
+  "CBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEVMBMGA1UEChMM\n"
+  "R2l0SHViLCBJbmMuMRQwEgYDVQQDDAsqLmdpdGh1Yi5pbzCCASIwDQYJKoZIhvcN\n"
+  "AQEBBQADggEPADCCAQoCggEBAK0rFKU6TEGvuLCY3ZOuXlG+3jerD6EP1gc1qe35\n"
+  "g68FqyGuVPOUddYNZiymjYMZxywoNp3qxlbFFBTf9etsayavT+uW+2UMjqCotAdK\n"
+  "KicBEspuExoACFuNgTi7sSUT7A55+k4/+5O+VtpaxQ5dmQk7HxcqvMYx5owBU+fB\n"
+  "wYDD+hXeg3YvxLZNeIlN8OlqWL8w9HbG+3ccegVEjOJQbkrcrW7IQMq2Uk92XjxI\n"
+  "PmMVIvaefqcC1poGYvS4VvEh3x64vJK1hEM4YLMKBaE/hqFtcMozi+H/8JqTCfzP\n"
+  "Qhnu21HIop9rSucxxnZbe9AeHz2LERpUTf3rjgOMg9PB1RUCAwEAAaOCA+0wggPp\n"
+  "MB8GA1UdIwQYMBaAFHSFgMBmx9833s+9KTeqAx2+7c0XMB0GA1UdDgQWBBTob1fr\n"
+  "hlGY65+lvlPa25SsKC777TB7BgNVHREEdDByggsqLmdpdGh1Yi5pb4IJZ2l0aHVi\n"
+  "LmlvghVnaXRodWJ1c2VyY29udGVudC5jb22CDnd3dy5naXRodWIuY29tggwqLmdp\n"
+  "dGh1Yi5jb22CFyouZ2l0aHVidXNlcmNvbnRlbnQuY29tggpnaXRodWIuY29tMD4G\n"
+  "A1UdIAQ3MDUwMwYGZ4EMAQICMCkwJwYIKwYBBQUHAgEWG2h0dHA6Ly93d3cuZGln\n"
+  "aWNlcnQuY29tL0NQUzAOBgNVHQ8BAf8EBAMCBaAwHQYDVR0lBBYwFAYIKwYBBQUH\n"
+  "AwEGCCsGAQUFBwMCMIGfBgNVHR8EgZcwgZQwSKBGoESGQmh0dHA6Ly9jcmwzLmRp\n"
+  "Z2ljZXJ0LmNvbS9EaWdpQ2VydEdsb2JhbEcyVExTUlNBU0hBMjU2MjAyMENBMS0x\n"
+  "LmNybDBIoEagRIZCaHR0cDovL2NybDQuZGlnaWNlcnQuY29tL0RpZ2lDZXJ0R2xv\n"
+  "YmFsRzJUTFNSU0FTSEEyNTYyMDIwQ0ExLTEuY3JsMIGHBggrBgEFBQcBAQR7MHkw\n"
+  "JAYIKwYBBQUHMAGGGGh0dHA6Ly9vY3NwLmRpZ2ljZXJ0LmNvbTBRBggrBgEFBQcw\n"
+  "AoZFaHR0cDovL2NhY2VydHMuZGlnaWNlcnQuY29tL0RpZ2lDZXJ0R2xvYmFsRzJU\n"
+  "TFNSU0FTSEEyNTYyMDIwQ0ExLTEuY3J0MAwGA1UdEwEB/wQCMAAwggF/BgorBgEE\n"
+  "AdZ5AgQCBIIBbwSCAWsBaQB2AE51oydcmhDDOFts1N8/Uusd8OCOG41pwLH6ZLFi\n"
+  "mjnfAAABjkN89oAAAAQDAEcwRQIgU/M527Wcx0KQ3II7kCuG5WMuOHRSxKkf1xAj\n"
+  "JuSkyPACIQCVX0uurcIA2Ug7ipNN2S1ZygukWqJCh7hjIH0XsrXh8QB2AH1ZHhLh\n"
+  "eCp7HGFnfF79+NCHXBSgTpWeuQMv2Q6MLnm4AAABjkN89oEAAAQDAEcwRQIgCxpL\n"
+  "BDak+TWKarrCHlZn4DlqwEfAN3lvlgSo21HQuU8CIQDicrb72c0lA2suMWPWT92P\n"
+  "FLaRvFrFn9HVzI6Vh50YZgB3AObSMWNAd4zBEEEG13G5zsHSQPaWhIb7uocyHf0e\n"
+  "N45QAAABjkN89pQAAAQDAEgwRgIhAPJQX4QArFCjM0sKKzsWLmqmmU8lMhKEYR2T\n"
+  "ges1AQyQAiEA2Y3VhP5RG+dapcbwYgVbrTlgWzO7KE/lg1x11CVcz3QwDQYJKoZI\n"
+  "hvcNAQELBQADggEBAHKlvzObJBxxgyLaUNCEFf37mNFsUtXmaWvkmcfIt9V+TZ7Q\n"
+  "mtvjx5bsd5lqAflp/eqk4+JYpnYcKWrZfM/vMdxPQTeh/VQWewY/hYn6X/V1s2JI\n"
+  "MtjqEkW4aotVdWjHVvsx4rAjz5vtub/wVYgtrU8jusH3TVpT9/0AoFhKE5m2IS7M\n"
+  "Ig7wKR+DDxoNj4fFFluxteVNgbtwuJcb23NkBQqfHXCvQWqxXZZA4Nwl/WoGPoGG\n"
+  "dW5qVOc3BlhtITW53ASyhvKC7HArhj7LwQH8C/dRgn1agIHP9vVJ1NaZnPXhK98T\n"
+  "ohv++OO0E/F/bVGNWVnLBQ4v5PjQzRQUTGvM2mU=\n"
   "-----END CERTIFICATE-----\n";
+
 
 // WifiManager callbacks and variables ------------------------------------------------------------------------
 bool shouldSaveConfig;
 String m_delay, m_wifiSSID, m_wifiPSW, m_hotspotSSID, m_hotspotPSW, m_blynkServer, m_blynkPort, m_blynkToken, m_thingChannel, m_thingApiKey;
 
 
+// Crea un'istanza di Debug
+Debug debug;
+
+
 // Setup --------------------------------------------------------------------------------------------------------
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(115200);
-
-  DEBUGSPC();
-  DEBUGLN(F("METEO STATION BASIC UPLOADER!!"));
-  DEBUGLN("Firmware version: " + String(FW_VERSION));
-  DEBUGSPC();
-
+  debug.printspc();
+  debug.println(F("METEO STATION BASIC UPLOADER!!"));
+  debug.println("Firmware version: " + String(FW_VERSION));
+  debug.printspc();
   initFS(true);
   if (!readNetworkConfigFile()) setNetworkConfigDefaults();
   wifiConnect(true);
-
   checkNtpClock();
   checkupdate();
 }
@@ -103,6 +123,7 @@ void saveConfigCallback() {
   shouldSaveConfig = true;
 }
 
+
 // ------------------------------------------------------------------------------------------------------------
 // enter in config mode
 void configModeCallback(WiFiManager* myWiFiManager) {
@@ -113,131 +134,65 @@ void configModeCallback(WiFiManager* myWiFiManager) {
 
 
 bool initFS(bool formatFS) {
-#ifdef USE_DEBUG
-  Serial.print("[");
-  Serial.print(millis());
-  Serial.print("] ");
-  Serial.println("Try to initialize the SPI file system...");
-#endif
-  // try to initialize the SPI file system
+  debug.println("Try to initialize the SPI file system...");
+
+  // Try to initialize the SPI file system
   if (!SPIFFS.begin()) {
-#ifdef USE_DEBUG
-    Serial.print("[");
-    Serial.print(millis());
-    Serial.print("] ");
-    Serial.println("SPIFFS initialization failed.");
-#endif
+    debug.println("SPIFFS initialization failed.");
     return false;
   }
-#ifdef USE_DEBUG
-  Serial.print("[");
-  Serial.print(millis());
-  Serial.print("] ");
-  Serial.println("SPIFFS initialization success.");
-#endif
+  debug.println("SPIFFS initialization success.");
+
   // Cerca il file di configurazione
-#ifdef USE_DEBUG
-  Serial.print("[");
-  Serial.print(millis());
-  Serial.print("] ");
-  Serial.printf("Search for %s file\n", NETWORK_CONFIG_FILE);
-#endif
+  debug.printf("Search for %s file\n", NETWORK_CONFIG_FILE);
+
   if (!SPIFFS.exists(NETWORK_CONFIG_FILE)) {
-#ifdef USE_DEBUG
-    Serial.print("[");
-    Serial.print(millis());
-    Serial.print("] ");
-    Serial.printf("%s file not found.\n", NETWORK_CONFIG_FILE);
-#endif
-    if (formatFS) {  // no config file present -> format the SPI file system
-#ifdef USE_DEBUG
-      Serial.print("[");
-      Serial.print(millis());
-      Serial.print("] ");
-      Serial.println("SPIFFS format...");
-#endif
+    debug.printf("%s file not found.\n", NETWORK_CONFIG_FILE);
+
+    if (formatFS) {  // No config file present -> format the SPI file system
+      debug.println("SPIFFS format...");
       if (!SPIFFS.format()) {
-#ifdef USE_DEBUG
-        Serial.print("[");
-        Serial.print(millis());
-        Serial.print("] ");
-        Serial.println("SPIFFS format error.");
-#endif
-        return (false);
+        debug.println("SPIFFS format error.");
+        return false;
       } else {
-#ifdef USE_DEBUG
-        Serial.print("[");
-        Serial.print(millis());
-        Serial.print("] ");
-        Serial.println("SPIFFS format success.");
-#endif
+        debug.println("SPIFFS format success.");
       }
     }
-    // create the config file
+
+    // Create the config file
     if (!writeNetworkConfigFile(true)) {
-#ifdef USE_DEBUG
-      Serial.print("[");
-      Serial.print(millis());
-      Serial.print("] ");
-      Serial.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
-#endif
-      return (false);
+      debug.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
+      return false;
     } else {
-#ifdef USE_DEBUG
-      Serial.print("[");
-      Serial.print(millis());
-      Serial.print("] ");
-      Serial.printf("Create %s file.\n", NETWORK_CONFIG_FILE);
-#endif
+      debug.printf("Create %s file.\n", NETWORK_CONFIG_FILE);
     }
   } else {
-#ifdef USE_DEBUG
-    Serial.print("[");
-    Serial.print(millis());
-    Serial.print("] ");
-    Serial.printf("%s file found.\n", NETWORK_CONFIG_FILE);
-#endif
+    debug.printf("%s file found.\n", NETWORK_CONFIG_FILE);
   }
-  return (true);
+
+  return true;
 }
 
 
 bool readNetworkConfigFile(void) {
   File configFile = SPIFFS.open(NETWORK_CONFIG_FILE, "r");
   if (!configFile) {
-#ifdef USE_DEBUG
-    Serial.print("[");
-    Serial.print(millis());
-    Serial.print("] ");
-    Serial.printf("Unable to open %s file.\n", NETWORK_CONFIG_FILE);
-#endif
+    debug.printf("Unable to open %s file.\n", NETWORK_CONFIG_FILE);
     return (false);
   }
-#ifdef USE_DEBUG
-  Serial.print("[");
-  Serial.print(millis());
-  Serial.print("] ");
-  Serial.printf("Open %s file.\n", NETWORK_CONFIG_FILE);
-#endif
+  debug.printf("Open %s file.\n", NETWORK_CONFIG_FILE);
   // read configiguration data
   while (configFile.available()) {
     String data = configFile.readStringUntil('\n');
     if (data.startsWith(VERSION_TAG)) {
       data.replace(VERSION_TAG, "");
       if (data != NETWORK_CFG_FILE_VERSION) {
-#ifdef USE_DEBUG
+
         if (data == "2.0.0") {
-          Serial.print("[");
-          Serial.print(millis());
-          Serial.print("] ");
-          Serial.println("Old firmware version, need update");
+          debug.println("Old firmware version, need update");
         } else {
-          Serial.print("[");
-          Serial.print(millis());
-          Serial.print("] ");
-          Serial.println("Wrong firmware version, loading defaults.");
+          debug.println("Wrong firmware version, loading defaults.");
         }
-#endif
         // different firmware version -> generate a new default one
         configFile.close();
         writeNetworkConfigFile(true);
@@ -284,12 +239,7 @@ bool readNetworkConfigFile(void) {
 bool writeNetworkConfigFile(bool useDefault) {
   File configFile = SPIFFS.open(NETWORK_CONFIG_FILE, "w");
   if (!configFile) {
-#ifdef USE_DEBUG
-    Serial.print("[");
-    Serial.print(millis());
-    Serial.print("] ");
-    Serial.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
-#endif
+    debug.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
     return (false);
   }
   configFile.printf("%s%s\n", VERSION_TAG, NETWORK_CFG_FILE_VERSION);
@@ -317,14 +267,10 @@ bool writeNetworkConfigFile(bool useDefault) {
     configFile.printf("%s%s\n", DELAY_TAG, m_delay.c_str());
   }
   configFile.close();
-#ifdef USE_DEBUG
-  Serial.print("[");
-  Serial.print(millis());
-  Serial.print("] ");
-  Serial.printf("Write %s file.\n", NETWORK_CONFIG_FILE);
-#endif
+  debug.printf("Write %s file.\n", NETWORK_CONFIG_FILE);
   return (true);
 }
+
 
 void setNetworkConfigDefaults(void) {
   m_wifiSSID = DEFAULT_SSID;
@@ -339,66 +285,39 @@ void setNetworkConfigDefaults(void) {
   m_delay = DEFAULT_DELAY;
 }
 
+
 bool wifiConnect(bool autoStartHotspot) {
-#ifdef USE_DEBUG
-  Serial.print("[");
-  Serial.print(millis());
-  Serial.print("] ");
-  Serial.println("Start connection");
-#endif
+  debug.println("Start connection");
   WiFi.begin(m_wifiSSID, m_wifiPSW);  // Connect to the network
-#ifdef USE_DEBUG
-  Serial.print("[");
-  Serial.print(millis());
-  Serial.print("] ");
-  Serial.printf("Connecting to %s ", m_wifiSSID.c_str());
-#endif
+
+  debug.printf("Connecting to %s ", m_wifiSSID.c_str());
+
   int i = 0;
   while ((WiFi.status() != WL_CONNECTED) && (i <= WIFI_TIMEOUT)) {
     delay(1000);
-#ifdef USE_DEBUG
-    Serial.print('.');
-#endif
+    debug.printp(".");  // Print a dot for each second of connection attempt
     i++;
   }
-#ifdef USE_DEBUG
-  Serial.println(F(""));
-#endif
-
+  debug.printspc();  // Move to the next line
   if (i <= WIFI_TIMEOUT) {
-    // connection established
-#ifdef USE_DEBUG
-    Serial.print("[");
-    Serial.print(millis());
-    Serial.print("] ");
-    Serial.println("Connection established!");
-    Serial.print("[");
-    Serial.print(millis());
-    Serial.print("] ");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-#endif
+    // Connection established
+    debug.println("Connection established!");
+    debug.print("IP address: ");
+    debug.printf("%s\n", WiFi.localIP().toString().c_str());  // Print IP address
   } else {
-    // unable to connect -> launch WiFi manager
-#ifdef USE_DEBUG
-    Serial.print("[");
-    Serial.print(millis());
-    Serial.print("] ");
-    Serial.printf("Unable to connect to %s\n", m_wifiSSID.c_str());
-#endif
+    // Unable to connect -> launch WiFi manager
+    debug.printf("Unable to connect to %s\n", m_wifiSSID.c_str());
     if (autoStartHotspot) {
-#ifdef USE_DEBUG
-      Serial.print("[");
-      Serial.print(millis());
-      Serial.print("] ");
-      Serial.printf("Launching hotspot...\n");
-#endif
+      debug.println("Launching hotspot...\n");
       startHotspot();
-    } else
+    } else {
       return false;
+    }
   }
+
   return true;
 }
+
 
 void startHotspot(void) {
   WiFiManager wifiManager;
@@ -441,123 +360,81 @@ void startHotspot(void) {
     m_delay = customDelay.getValue();
 
     if (!writeNetworkConfigFile(false)) {
-#ifdef USE_DEBUG
-      Serial.print("[");
-      Serial.print(millis());
-      Serial.print("] ");
-      Serial.println("Unable to writing config file");
-#endif
+      debug.println("Unable to writing config file");
     } else {
-#ifdef USE_DEBUG
-      Serial.print("[");
-      Serial.print(millis());
-      Serial.print("] ");
-      Serial.println("Config file written.");
-#endif
+      debug.println("Config file written.");
     }
   }
 }
+
 
 void checkupdate() {
   String newFWVersion = "0000";
   String fwURL = "https://" + String(fwServerBase) + String(fwDirBase);
   String fwVersionURL = fwURL + fwNameBase;
 
-  DEBUGLN("Checking for firmware updates.");
-  DEBUGLN("Firmware version URL: " + String(fwVersionURL));
-
+  debug.println("Checking for firmware updates.");
+  debug.println("Firmware version URL: " + String(fwVersionURL));
   WiFiClientSecure client;
   client.setCACert(rootCACertificate);
-
   HTTPClient https;
   if (!https.begin(client, fwVersionURL)) {
-    DEBUGLN("Error initializing HTTPS connection.");
+    debug.println("Error initializing HTTPS connection.");
     return;
   }
-
   int httpCode = https.GET();
   if (httpCode == -1) {
-    DEBUGLN("Connection error: check your network connection and URL.");
+    debug.println("Connection error: check your network connection and URL.");
   } else if (httpCode == 200) {
     newFWVersion = https.getString();
-    DEBUGLN("Current firmware version: " + String(FW_VERSION));
-    DEBUGLN("Available firmware version: " + String(newFWVersion));
-
+    debug.println("Current firmware version: " + String(FW_VERSION));
+    debug.println("Available firmware version: " + String(newFWVersion));
     int newVersion = newFWVersion.toInt();
     if (newVersion > FW_VERSION) {
       OTAupgrade(client, fwURL, newVersion);
     } else {
-      DEBUGLN("Already on the latest version");
+      debug.println("Already on the latest version");
     }
   } else {
-    DEBUGLN("Firmware version check failed, got HTTP response code " + String(httpCode));
+    debug.println("Firmware version check failed, got HTTP response code " + String(httpCode));
   }
 
   https.end();
 }
 
-void OTAupgrade(WiFiClientSecure client, String URL, int Version) {
-  DEBUGLN("Preparing to update");
-  httpUpdate.setLedPin(LED_BUILTIN, LOW);
 
+void OTAupgrade(WiFiClientSecure client, String URL, int Version) {
+  debug.println("Preparing to update");
+  httpUpdate.setLedPin(LED_BUILTIN, LOW);
   String fwImageURL = URL + String(Version) + ".bin";
-  DEBUGLN("Firmware image URL: " + String(fwImageURL));
+  debug.println("Firmware image URL: " + String(fwImageURL));
   t_httpUpdate_return ret = httpUpdate.update(client, fwImageURL);
   switch (ret) {
     case HTTP_UPDATE_FAILED:
-      DEBUGLN("HTTP_UPDATE_FAILED Error " + String(httpUpdate.getLastError()) + ": " + httpUpdate.getLastErrorString().c_str());
+      debug.println("HTTP_UPDATE_FAILED Error " + String(httpUpdate.getLastError()) + ": " + httpUpdate.getLastErrorString().c_str());
       break;
     case HTTP_UPDATE_NO_UPDATES:
-      DEBUGLN("HTTP_UPDATE_NO_UPDATES");
+      debug.println("HTTP_UPDATE_NO_UPDATES");
       break;
     case HTTP_UPDATE_OK:
-      DEBUGLN("HTTP_UPDATE_OK");
+      debug.println("HTTP_UPDATE_OK");
       break;
   }
 }
 
+
 void checkNtpClock() {
   configTime(0, 0, "pool.ntp.org", "time.nist.gov");  // UTC
-  DEBUG(F("Waiting for NTP time sync: "));
+  debug.print(F("Waiting for NTP time sync: "));
   time_t now = time(nullptr);
   while (now < 8 * 3600) {
     yield();
     delay(500);
-    DEBUGP(F("."));
+    debug.printp(F("."));
     now = time(nullptr);
   }
-  DEBUGSPC();
+  debug.printspc();
   struct tm timeinfo;
   gmtime_r(&now, &timeinfo);
-  DEBUGLN("Current time: " + String(asctime(&timeinfo)));
-}
-
-void DEBUG(String toPrint) {
-#ifdef USE_DEBUG
-  Serial.print("[");
-  Serial.print(millis());
-  Serial.print("] ");
-  Serial.print(toPrint);
-#endif
-}
-
-void DEBUGP(String toPrint) {
-#ifdef USE_DEBUG
-  Serial.print(toPrint);
-#endif
-}
-
-void DEBUGLN(String toPrint) {
-#ifdef USE_DEBUG
-  Serial.print("[");
-  Serial.print(millis());
-  Serial.print("] ");
-  Serial.println(toPrint);
-#endif
-}
-
-void DEBUGSPC(void) {
-#ifdef USE_DEBUG
-  Serial.println(F(""));
-#endif
+  debug.println("Current time: " + String(asctime(&timeinfo)));
 }
