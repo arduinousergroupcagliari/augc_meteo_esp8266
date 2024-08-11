@@ -1,7 +1,7 @@
 
 // how many seconds should try to connect to the wifi network
-#define WIFI_TIMEOUT 5                    // seconds
-#define NETWORK_CFG_FILE_VERSION "2.2.0"  // network config file version
+#define WIFI_TIMEOUT 5                  // seconds
+#define NETWORK_CFG_FILE_VERSION "3.0"  // network config file version
 #define NETWORK_CONFIG_FILE "/network.cfg"
 #define ENABLE_HOTSPOT_PSW 0  // 0 -> password disabled 1 -> password enabled
 
@@ -34,60 +34,16 @@
 
 
 #include "utility.h"
-#include <WiFiManager.h>  // on Arduino Library Manager  --> WiFimanager by Tzapu,Tablatronix version 0.15.0
-#include <HTTPUpdate.h>
-#include <WiFiClientSecure.h>
-#include <time.h>
 #include <SPIFFS.h>
-
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <Update.h>
+#include <WiFiManager.h>
 
 const int FW_VERSION = 0;
 const char* fwServerBase = "raw.githubusercontent.com";
 const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/dev/bin/";
 const char* fwNameBase = "latest.version";
-const char* rootCACertificate =
-  "-----BEGIN CERTIFICATE-----\n"
-  "MIIHOTCCBiGgAwIBAgIQBj1JF0BNOeUTyz/uzRsuGzANBgkqhkiG9w0BAQsFADBZ\n"
-  "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMTMwMQYDVQQDEypE\n"
-  "aWdpQ2VydCBHbG9iYWwgRzIgVExTIFJTQSBTSEEyNTYgMjAyMCBDQTEwHhcNMjQw\n"
-  "MzE1MDAwMDAwWhcNMjUwMzE0MjM1OTU5WjBnMQswCQYDVQQGEwJVUzETMBEGA1UE\n"
-  "CBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEVMBMGA1UEChMM\n"
-  "R2l0SHViLCBJbmMuMRQwEgYDVQQDDAsqLmdpdGh1Yi5pbzCCASIwDQYJKoZIhvcN\n"
-  "AQEBBQADggEPADCCAQoCggEBAK0rFKU6TEGvuLCY3ZOuXlG+3jerD6EP1gc1qe35\n"
-  "g68FqyGuVPOUddYNZiymjYMZxywoNp3qxlbFFBTf9etsayavT+uW+2UMjqCotAdK\n"
-  "KicBEspuExoACFuNgTi7sSUT7A55+k4/+5O+VtpaxQ5dmQk7HxcqvMYx5owBU+fB\n"
-  "wYDD+hXeg3YvxLZNeIlN8OlqWL8w9HbG+3ccegVEjOJQbkrcrW7IQMq2Uk92XjxI\n"
-  "PmMVIvaefqcC1poGYvS4VvEh3x64vJK1hEM4YLMKBaE/hqFtcMozi+H/8JqTCfzP\n"
-  "Qhnu21HIop9rSucxxnZbe9AeHz2LERpUTf3rjgOMg9PB1RUCAwEAAaOCA+0wggPp\n"
-  "MB8GA1UdIwQYMBaAFHSFgMBmx9833s+9KTeqAx2+7c0XMB0GA1UdDgQWBBTob1fr\n"
-  "hlGY65+lvlPa25SsKC777TB7BgNVHREEdDByggsqLmdpdGh1Yi5pb4IJZ2l0aHVi\n"
-  "LmlvghVnaXRodWJ1c2VyY29udGVudC5jb22CDnd3dy5naXRodWIuY29tggwqLmdp\n"
-  "dGh1Yi5jb22CFyouZ2l0aHVidXNlcmNvbnRlbnQuY29tggpnaXRodWIuY29tMD4G\n"
-  "A1UdIAQ3MDUwMwYGZ4EMAQICMCkwJwYIKwYBBQUHAgEWG2h0dHA6Ly93d3cuZGln\n"
-  "aWNlcnQuY29tL0NQUzAOBgNVHQ8BAf8EBAMCBaAwHQYDVR0lBBYwFAYIKwYBBQUH\n"
-  "AwEGCCsGAQUFBwMCMIGfBgNVHR8EgZcwgZQwSKBGoESGQmh0dHA6Ly9jcmwzLmRp\n"
-  "Z2ljZXJ0LmNvbS9EaWdpQ2VydEdsb2JhbEcyVExTUlNBU0hBMjU2MjAyMENBMS0x\n"
-  "LmNybDBIoEagRIZCaHR0cDovL2NybDQuZGlnaWNlcnQuY29tL0RpZ2lDZXJ0R2xv\n"
-  "YmFsRzJUTFNSU0FTSEEyNTYyMDIwQ0ExLTEuY3JsMIGHBggrBgEFBQcBAQR7MHkw\n"
-  "JAYIKwYBBQUHMAGGGGh0dHA6Ly9vY3NwLmRpZ2ljZXJ0LmNvbTBRBggrBgEFBQcw\n"
-  "AoZFaHR0cDovL2NhY2VydHMuZGlnaWNlcnQuY29tL0RpZ2lDZXJ0R2xvYmFsRzJU\n"
-  "TFNSU0FTSEEyNTYyMDIwQ0ExLTEuY3J0MAwGA1UdEwEB/wQCMAAwggF/BgorBgEE\n"
-  "AdZ5AgQCBIIBbwSCAWsBaQB2AE51oydcmhDDOFts1N8/Uusd8OCOG41pwLH6ZLFi\n"
-  "mjnfAAABjkN89oAAAAQDAEcwRQIgU/M527Wcx0KQ3II7kCuG5WMuOHRSxKkf1xAj\n"
-  "JuSkyPACIQCVX0uurcIA2Ug7ipNN2S1ZygukWqJCh7hjIH0XsrXh8QB2AH1ZHhLh\n"
-  "eCp7HGFnfF79+NCHXBSgTpWeuQMv2Q6MLnm4AAABjkN89oEAAAQDAEcwRQIgCxpL\n"
-  "BDak+TWKarrCHlZn4DlqwEfAN3lvlgSo21HQuU8CIQDicrb72c0lA2suMWPWT92P\n"
-  "FLaRvFrFn9HVzI6Vh50YZgB3AObSMWNAd4zBEEEG13G5zsHSQPaWhIb7uocyHf0e\n"
-  "N45QAAABjkN89pQAAAQDAEgwRgIhAPJQX4QArFCjM0sKKzsWLmqmmU8lMhKEYR2T\n"
-  "ges1AQyQAiEA2Y3VhP5RG+dapcbwYgVbrTlgWzO7KE/lg1x11CVcz3QwDQYJKoZI\n"
-  "hvcNAQELBQADggEBAHKlvzObJBxxgyLaUNCEFf37mNFsUtXmaWvkmcfIt9V+TZ7Q\n"
-  "mtvjx5bsd5lqAflp/eqk4+JYpnYcKWrZfM/vMdxPQTeh/VQWewY/hYn6X/V1s2JI\n"
-  "MtjqEkW4aotVdWjHVvsx4rAjz5vtub/wVYgtrU8jusH3TVpT9/0AoFhKE5m2IS7M\n"
-  "Ig7wKR+DDxoNj4fFFluxteVNgbtwuJcb23NkBQqfHXCvQWqxXZZA4Nwl/WoGPoGG\n"
-  "dW5qVOc3BlhtITW53ASyhvKC7HArhj7LwQH8C/dRgn1agIHP9vVJ1NaZnPXhK98T\n"
-  "ohv++OO0E/F/bVGNWVnLBQ4v5PjQzRQUTGvM2mU=\n"
-  "-----END CERTIFICATE-----\n";
-
 
 // WifiManager callbacks and variables ------------------------------------------------------------------------
 bool shouldSaveConfig;
@@ -101,6 +57,10 @@ Debug debug;
 // Setup --------------------------------------------------------------------------------------------------------
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(1000);
+  digitalWrite(LED_BUILTIN, LOW);
+
   Serial.begin(115200);
   debug.printspc();
   debug.println(F("METEO STATION BASIC UPLOADER!!"));
@@ -109,10 +69,8 @@ void setup() {
   initFS(true);
   if (!readNetworkConfigFile()) setNetworkConfigDefaults();
   wifiConnect(true);
-  checkNtpClock();
-  checkupdate();
+  checkFirmwareUpgrade();
 }
-
 
 void loop() {}
 
@@ -187,7 +145,6 @@ bool readNetworkConfigFile(void) {
     if (data.startsWith(VERSION_TAG)) {
       data.replace(VERSION_TAG, "");
       if (data != NETWORK_CFG_FILE_VERSION) {
-
         if (data == "2.0.0") {
           debug.println("Old firmware version, need update");
         } else {
@@ -289,9 +246,7 @@ void setNetworkConfigDefaults(void) {
 bool wifiConnect(bool autoStartHotspot) {
   debug.println("Start connection");
   WiFi.begin(m_wifiSSID, m_wifiPSW);  // Connect to the network
-
   debug.printf("Connecting to %s ", m_wifiSSID.c_str());
-
   int i = 0;
   while ((WiFi.status() != WL_CONNECTED) && (i <= WIFI_TIMEOUT)) {
     delay(1000);
@@ -303,9 +258,9 @@ bool wifiConnect(bool autoStartHotspot) {
     // Connection established
     debug.println("Connection established!");
     debug.print("IP address: ");
-    debug.printf("%s\n", WiFi.localIP().toString().c_str());  // Print IP address
+    debug.printp(WiFi.localIP().toString().c_str());
+    debug.printspc();
   } else {
-    // Unable to connect -> launch WiFi manager
     debug.printf("Unable to connect to %s\n", m_wifiSSID.c_str());
     if (autoStartHotspot) {
       debug.println("Launching hotspot...\n");
@@ -324,11 +279,11 @@ void startHotspot(void) {
   shouldSaveConfig = false;
   wifiManager.setAPCallback(configModeCallback);
   wifiManager.setSaveConfigCallback(saveConfigCallback);
-  WiFiManagerParameter customDelay("DS DELAY", "DeepSleep Delay", m_delay.c_str(), 5);
+  WiFiManagerParameter customDelay("DS_DELAY", "DeepSleep Delay", m_delay.c_str(), 5);
   wifiManager.addParameter(&customDelay);
-  WiFiManagerParameter customHotspotSSID("HS SSID", "Hotspot SSID", m_hotspotSSID.c_str(), 40);
+  WiFiManagerParameter customHotspotSSID("HS_SSID", "Hotspot SSID", m_hotspotSSID.c_str(), 40);
   wifiManager.addParameter(&customHotspotSSID);
-  WiFiManagerParameter customHotspotPSW("HS PSWD", "Hotspot password", m_hotspotPSW.c_str(), 40);
+  WiFiManagerParameter customHotspotPSW("HS_PSWD", "Hotspot password", m_hotspotPSW.c_str(), 40);
   wifiManager.addParameter(&customHotspotPSW);
   WiFiManagerParameter customBlynkServer("Server", "Blynk Server", m_blynkServer.c_str(), 40);
   wifiManager.addParameter(&customBlynkServer);
@@ -360,7 +315,7 @@ void startHotspot(void) {
     m_delay = customDelay.getValue();
 
     if (!writeNetworkConfigFile(false)) {
-      debug.println("Unable to writing config file");
+      debug.println("Unable to write config file");
     } else {
       debug.println("Config file written.");
     }
@@ -368,73 +323,85 @@ void startHotspot(void) {
 }
 
 
-void checkupdate() {
+void checkFirmwareUpgrade() {
   String newFWVersion = "0000";
   String fwURL = "https://" + String(fwServerBase) + String(fwDirBase);
   String fwVersionURL = fwURL + fwNameBase;
 
   debug.println("Checking for firmware updates.");
   debug.println("Firmware version URL: " + String(fwVersionURL));
-  WiFiClientSecure client;
-  client.setCACert(rootCACertificate);
-  HTTPClient https;
-  if (!https.begin(client, fwVersionURL)) {
+
+  HTTPClient clientHttp;
+  if (!clientHttp.begin(fwVersionURL)) {
     debug.println("Error initializing HTTPS connection.");
     return;
   }
-  int httpCode = https.GET();
+
+  int httpCode = clientHttp.GET();
   if (httpCode == -1) {
-    debug.println("Connection error: check your network connection and URL.");
-  } else if (httpCode == 200) {
-    newFWVersion = https.getString();
+    debug.println("Connection error: check your network connection.");
+  } else if (httpCode == HTTP_CODE_OK) {
+    newFWVersion = clientHttp.getString();
     debug.println("Current firmware version: " + String(FW_VERSION));
     debug.println("Available firmware version: " + String(newFWVersion));
     int newVersion = newFWVersion.toInt();
+
     if (newVersion > FW_VERSION) {
-      OTAupgrade(client, fwURL, newVersion);
+      OTAupgrade(clientHttp, fwURL, newVersion);
     } else {
       debug.println("Already on the latest version");
     }
   } else {
     debug.println("Firmware version check failed, got HTTP response code " + String(httpCode));
   }
-
-  https.end();
+  clientHttp.end();
 }
 
-
-void OTAupgrade(WiFiClientSecure client, String URL, int Version) {
-  debug.println("Preparing to update");
-  httpUpdate.setLedPin(LED_BUILTIN, LOW);
+void OTAupgrade(HTTPClient& clientHttp, String URL, int Version) {
+  debug.println("Preparing to upgrade");
   String fwImageURL = URL + String(Version) + ".bin";
   debug.println("Firmware image URL: " + String(fwImageURL));
-  t_httpUpdate_return ret = httpUpdate.update(client, fwImageURL);
-  switch (ret) {
-    case HTTP_UPDATE_FAILED:
-      debug.println("HTTP_UPDATE_FAILED Error " + String(httpUpdate.getLastError()) + ": " + httpUpdate.getLastErrorString().c_str());
-      break;
-    case HTTP_UPDATE_NO_UPDATES:
-      debug.println("HTTP_UPDATE_NO_UPDATES");
-      break;
-    case HTTP_UPDATE_OK:
-      debug.println("HTTP_UPDATE_OK");
-      break;
-  }
-}
 
+  if (clientHttp.begin(fwImageURL)) {
+    int httpCode = clientHttp.GET();
 
-void checkNtpClock() {
-  configTime(0, 0, "pool.ntp.org", "time.nist.gov");  // UTC
-  debug.print(F("Waiting for NTP time sync: "));
-  time_t now = time(nullptr);
-  while (now < 8 * 3600) {
-    yield();
-    delay(500);
-    debug.printp(F("."));
-    now = time(nullptr);
+    if (httpCode == HTTP_CODE_OK) {
+      debug.println("Connection OK!");
+      int contentLength = clientHttp.getSize();
+      debug.println("Firmware size: " + String(contentLength) + " byte");
+      if (contentLength > 0) {
+        bool canBegin = Update.begin(contentLength);
+        if (canBegin) {
+          debug.println("Starting upgrade...");
+          WiFiClient* clientWifi = clientHttp.getStreamPtr();
+          size_t written = Update.writeStream(*clientWifi);
+          if (written == contentLength) {
+            debug.println("Written : " + String(written) + " successfully");
+          } else {
+            debug.println("Written only : " + String(written) + "/" + String(contentLength) + ". Retry?");
+          }
+          if (Update.end()) {
+            debug.println("OTA done!");
+            if (Update.isFinished()) {
+              debug.println("Update successfully completed. Rebooting.");
+              ESP.restart();
+            } else {
+              debug.println("Update not finished? Something went wrong!");
+            }
+          } else {
+            debug.println("Error Occurred. Error #: " + String(Update.getError()));
+          }
+        } else {
+          debug.println("Not enough space to begin OTA");
+        }
+      } else {
+        debug.println("Content-Length is not available or invalid");
+      }
+    } else {
+      debug.println("Firmware download failed, got HTTP response code " + String(httpCode));
+    }
+    clientHttp.end();
+  } else {
+    debug.println("Error initializing HTTPS connection for firmware download.");
   }
-  debug.printspc();
-  struct tm timeinfo;
-  gmtime_r(&now, &timeinfo);
-  debug.println("Current time: " + String(asctime(&timeinfo)));
 }
