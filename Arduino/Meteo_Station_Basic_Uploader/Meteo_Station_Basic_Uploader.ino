@@ -92,38 +92,44 @@ void configModeCallback(WiFiManager* myWiFiManager) {
 
 
 bool initFS(bool formatFS) {
-  debug.println("Try to initialize the SPI file system...");
+  debug.println("Trying to initialize the SPIFFS file system...");
 
-  // Try to initialize the SPI file system
   if (!SPIFFS.begin()) {
-    debug.println("SPIFFS initialization failed.");
-    return false;
-  }
-  debug.println("SPIFFS initialization success.");
+    debug.println("SPIFFS mount failed, attempting to format...");
 
-  // Cerca il file di configurazione
-  debug.printf("Search for %s file\n", NETWORK_CONFIG_FILE);
+    if (!SPIFFS.format() || !SPIFFS.begin()) {
+      debug.println("SPIFFS format or re-mount failed, check your setup.");
+      return false;
+    }
+
+    debug.println("SPIFFS format and re-mount successful.");
+    formatFS = false;
+  } else {
+    debug.println("SPIFFS initialization successful.");
+  }
+
+  debug.printf("Searching for %s file...\n", NETWORK_CONFIG_FILE);
 
   if (!SPIFFS.exists(NETWORK_CONFIG_FILE)) {
     debug.printf("%s file not found.\n", NETWORK_CONFIG_FILE);
 
-    if (formatFS) {  // No config file present -> format the SPI file system
-      debug.println("SPIFFS format...");
+    if (formatFS) {
+      debug.println("Formatting SPIFFS due to missing config file...");
+
       if (!SPIFFS.format()) {
-        debug.println("SPIFFS format error.");
+        debug.println("SPIFFS format failed.");
         return false;
-      } else {
-        debug.println("SPIFFS format success.");
       }
+
+      debug.println("SPIFFS format successful.");
     }
 
-    // Create the config file
     if (!writeNetworkConfigFile(true)) {
       debug.printf("Unable to create %s file.\n", NETWORK_CONFIG_FILE);
       return false;
-    } else {
-      debug.printf("Create %s file.\n", NETWORK_CONFIG_FILE);
     }
+
+    debug.printf("Created %s file.\n", NETWORK_CONFIG_FILE);
   } else {
     debug.printf("%s file found.\n", NETWORK_CONFIG_FILE);
   }
