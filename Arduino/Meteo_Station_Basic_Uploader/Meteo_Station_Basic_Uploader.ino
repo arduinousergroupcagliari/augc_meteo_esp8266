@@ -40,7 +40,7 @@
 
 const int FW_VERSION = 0;
 const char* fwServerBase = "raw.githubusercontent.com";
-const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/dev/bin/";
+const char* fwDirBase = "/arduinousergroupcagliari/augc_meteo_esp8266/ESP32/bin/";
 const char* fwNameBase = "latest.version";
 
 // WifiManager callbacks and variables ------------------------------------------------------------------------
