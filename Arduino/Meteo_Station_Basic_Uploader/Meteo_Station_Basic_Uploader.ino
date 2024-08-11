@@ -1,10 +1,10 @@
+// Meteo Station Basic Uploader for ESP32
 
 // how many seconds should try to connect to the wifi network
-#define WIFI_TIMEOUT 5                  // seconds
+#define WIFI_TIMEOUT 10                 // seconds
 #define NETWORK_CFG_FILE_VERSION "3.0"  // network config file version
 #define NETWORK_CONFIG_FILE "/network.cfg"
 #define ENABLE_HOTSPOT_PSW 0  // 0 -> password disabled 1 -> password enabled
-
 
 // network defaults
 #define DEFAULT_DELAY "15"
@@ -35,9 +35,7 @@
 
 #include "utility.h"
 #include <SPIFFS.h>
-#include <WiFi.h>
 #include <HTTPClient.h>
-#include <Update.h>
 #include <WiFiManager.h>
 
 const int FW_VERSION = 0;
@@ -262,33 +260,38 @@ void setNetworkConfigDefaults(void) {
 
 
 bool wifiConnect(bool autoStartHotspot) {
+  const unsigned long startAttemptTime = millis();    // Salva il tempo di inizio tentativo
+  const unsigned long timeout = WIFI_TIMEOUT * 1000;  // Timeout in millisecondi (assumendo WIFI_TIMEOUT in secondi)
+
   debug.println("Start connection");
-  WiFi.begin(m_wifiSSID, m_wifiPSW);  // Connect to the network
+  debug.printf("WiFi SSID: %s\n", m_wifiSSID.c_str());
+  debug.printf("WiFi Password: %s\n", m_wifiPSW.c_str());
+
+  WiFi.begin(m_wifiSSID, m_wifiPSW);  // Inizia la connessione
+
   debug.printf("Connecting to %s ", m_wifiSSID.c_str());
-  int i = 0;
-  while ((WiFi.status() != WL_CONNECTED) && (i <= WIFI_TIMEOUT)) {
-    delay(1000);
-    debug.printp(".");  // Print a dot for each second of connection attempt
-    i++;
+
+  // Loop di connessione con timeout
+  while (WiFi.status() != WL_CONNECTED && (millis() - startAttemptTime < timeout)) {
+    delay(1000);        // Attende un secondo tra i tentativi
+    debug.printp(".");  // Stampa un punto per ogni secondo di tentativo
   }
-  debug.printspc();  // Move to the next line
-  if (i <= WIFI_TIMEOUT) {
-    // Connection established
+  debug.printspc();  // A capo dopo il tentativo di connessione
+
+  if (WiFi.status() == WL_CONNECTED) {
+    // Connessione stabilita
     debug.println("Connection established!");
-    debug.print("IP address: ");
-    debug.printp(WiFi.localIP().toString().c_str());
-    debug.printspc();
+    debug.printf("IP address: %s\n", WiFi.localIP().toString().c_str());
+    return true;
   } else {
+    // Connessione non riuscita
     debug.printf("Unable to connect to %s\n", m_wifiSSID.c_str());
     if (autoStartHotspot) {
       debug.println("Launching hotspot...\n");
       startHotspot();
-    } else {
-      return false;
     }
+    return false;
   }
-
-  return true;
 }
 
 
@@ -365,7 +368,7 @@ void checkFirmwareUpgrade() {
     int newVersion = newFWVersion.toInt();
 
     if (newVersion > FW_VERSION) {
-      OTAupgrade(clientHttp, fwURL, newVersion);
+      myOTAupgrade(clientHttp, fwURL, newVersion);
     } else {
       debug.println("Already on the latest version");
     }
@@ -375,7 +378,8 @@ void checkFirmwareUpgrade() {
   clientHttp.end();
 }
 
-void OTAupgrade(HTTPClient& clientHttp, String URL, int Version) {
+
+void myOTAupgrade(HTTPClient& clientHttp, String URL, int Version) {
   debug.println("Preparing to upgrade");
   String fwImageURL = URL + String(Version) + ".bin";
   debug.println("Firmware image URL: " + String(fwImageURL));
