@@ -145,7 +145,8 @@ bool readNetworkConfigFile(void) {
     return (false);
   }
   debug.printf("Open %s file.\n", NETWORK_CONFIG_FILE);
-  // read configiguration data
+
+  // read configuration data
   while (configFile.available()) {
     String data = configFile.readStringUntil('\n');
     if (data.startsWith(VERSION_TAG)) {
@@ -162,36 +163,47 @@ bool readNetworkConfigFile(void) {
         setNetworkConfigDefaults();
         return (true);
       }
+      debug.printf("Firmware Version: %s\n", data.c_str());
     } else if (data.startsWith(WIFI_SSID_TAG)) {
       data.replace(WIFI_SSID_TAG, "");
       m_wifiSSID = data;
+      debug.printf("WiFi SSID: %s\n", m_wifiSSID.c_str());
     } else if (data.startsWith(WIFI_PSWD_TAG)) {
       data.replace(WIFI_PSWD_TAG, "");
       m_wifiPSW = data;
+      debug.printf("WiFi Password: %s\n", m_wifiPSW.c_str());
     } else if (data.startsWith(HS_SSID_TAG)) {
       data.replace(HS_SSID_TAG, "");
       m_hotspotSSID = data;
+      debug.printf("Hotspot SSID: %s\n", m_hotspotSSID.c_str());
     } else if (data.startsWith(HS_PSWD_TAG)) {
       data.replace(HS_PSWD_TAG, "");
       m_hotspotPSW = data;
+      debug.printf("Hotspot Password: %s\n", m_hotspotPSW.c_str());
     } else if (data.startsWith(BLYNK_SERVER_TAG)) {
       data.replace(BLYNK_SERVER_TAG, "");
       m_blynkServer = data;
+      debug.printf("Blynk Server: %s\n", m_blynkServer.c_str());
     } else if (data.startsWith(BLYNK_PORT_TAG)) {
       data.replace(BLYNK_PORT_TAG, "");
       m_blynkPort = data;
+      debug.printf("Blynk Port: %s\n", m_blynkPort.c_str());
     } else if (data.startsWith(BLYNK_TOKEN_TAG)) {
       data.replace(BLYNK_TOKEN_TAG, "");
       m_blynkToken = data;
+      debug.printf("Blynk Token: %s\n", m_blynkToken.c_str());
     } else if (data.startsWith(THING_CHANNEL_TAG)) {
       data.replace(THING_CHANNEL_TAG, "");
       m_thingChannel = data;
+      debug.printf("ThingSpeak Channel: %s\n", m_thingChannel.c_str());
     } else if (data.startsWith(THING_APIKEY_TAG)) {
       data.replace(THING_APIKEY_TAG, "");
       m_thingApiKey = data;
+      debug.printf("ThingSpeak API Key: %s\n", m_thingApiKey.c_str());
     } else if (data.startsWith(DELAY_TAG)) {
       data.replace(DELAY_TAG, "");
       m_delay = data;
+      debug.printf("Delay: %s\n", m_delay.c_str());
     }
   }
   configFile.close();
